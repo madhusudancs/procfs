@@ -1,0 +1,21 @@
+2008-05-19  Madhusudan.C.S  <madhusudancs@gmail.com>
+
+        * Created Directory: src
+
+        * Created Files: AUTHORS, COPYING, BuildLog, src/netfs.c
+
+        * src/netfs.c: Add License and Copyright information to the file.
+        Add headers to the file.
+
+	* AUTHORS: Add Madhusudan.C.S to author part and Olaf Buddenhagen
+          to mentor part.
+
+        * COPYING: Add License and Copyright information in detail.
+
+2008-05-13  Madhusudan.C.S <madhusudancs@gmail.com>
+
+        * Created Root Directory: procfs
+
+        * Created File: README with no contents
+
+        * First commit to git

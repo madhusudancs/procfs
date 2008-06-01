@@ -1,1 +1,61 @@
+------------------------------------------------------------------------------------------------------------
 
+2008-06-01 Build 2
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c -lnetfs -lfshelp -liohelp -lports
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:92: warning: control reaches end of non-void function
+procfs.c: In function 'main':
+procfs.c:107: warning: implicit declaration of function 'procfs_init'
+procfs.c:98: warning: unused variable 'err'
+/tmp/ccXB6Vvy.o: In function `netfs_validate_stat':
+/root/gsoc/procfs/src/netfs.c:39: undefined reference to `procfs_refresh_node'
+/tmp/ccNjxQuw.o: In function `main':
+/root/gsoc/procfs/src/procfs.c:107: undefined reference to `procfs_init'
+/lib/libnetfs.so: undefined reference to `netfs_check_open_permissions'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_readlink'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_chown'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_utimes'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_unlink'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_write'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_syncfs'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_chauthor'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_chmod'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_rename'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_lookup'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_set_size'
+/lib/libnetfs.so: undefined reference to `netfs_report_access'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_statfs'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_read'
+/lib/libnetfs.so: undefined reference to `netfs_get_dirents'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_link'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_mkfile'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_mkdev'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_create_file'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_chflags'
+/lib/libnetfs.so: undefined reference to `netfs_attempt_mksymlink'
+/lib/libnetfs.so: undefined reference to `netfs_node_norefs'
+collect2: ld returned 1 exit status
+make: *** [procfs] Error 1
+
+------------------------------------------------------------------------------------------------------------
+
+2008-06-01 Build 1 
+
+gcc -Wall -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c -lnetfs -lfshelp -liohelp -lports
+In file included from netfs.c:30:
+procfs.h:76: error: expected '=', ',', ';', 'asm' or '__attribute__' before '*' token
+In file included from procfs.c:36:
+procfs.h:76: error: expected '=', ',', ';', 'asm' or '__attribute__' before '*' token
+procfs.c:46: error: expected '}' before '{' token
+procfs.c:50: error: expected ',' or ';' before 'PACKAGE'
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:90: error: 'ARGP_ERROR_UNKNOWN' undeclared (first use in this function)
+procfs.c:90: error: (Each undeclared identifier is reported only once
+procfs.c:90: error: for each function it appears in.)
+procfs.c:90: error: incompatible types in return
+procfs.c:92: warning: control reaches end of non-void function
+procfs.c: In function 'main':
+procfs.c:107: warning: implicit declaration of function 'procfs_init'
+procfs.c:98: warning: unused variable 'err'
+make: *** [procfs] Error 1

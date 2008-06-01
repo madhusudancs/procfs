@@ -22,7 +22,7 @@ makemode := server
 target = procfs
 
 CC = gcc
-CFLAGS = -Wall -d -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS = -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 INCLUDES = -I.
 SRCS = netfs.c procfs.c
 LCLHDRS = procfs.h

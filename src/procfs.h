@@ -73,7 +73,7 @@ struct procfs
 
 extern struct procfs *procfs;
 
-extern volatile mapped_time_value *procfs_maptime;
+extern volatile struct mapped_time_value *procfs_maptime;
 
 /* Create a new procfs filesystem.  */
 error_t procfs_create (struct procfs **fs);

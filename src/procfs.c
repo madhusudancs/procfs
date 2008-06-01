@@ -42,12 +42,13 @@ int netfs_maxsymlinks = 12;
 
 static const struct argp_child argp_children[] = 
   {
-    {&netfs_std_startup_argp, 0, NULL, 0}
+    {&netfs_std_startup_argp, 0, NULL, 0},
     {0}
   };
 
 
-const char *argp_program_version = "procfs (" PACKAGE ") " VERSION "\n"
+const char *argp_program_version = "/proc pseudo-filesystem (" PROCFS_SERVER_NAME
+ ") " PROCFS_SERVER_VERSION "\n"
 "Copyright (C) 2008 Free Software Foundation\n"
 "This is free software; see the source for copying conditions.  There is NO\n"
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
@@ -87,7 +88,7 @@ parse_procfs_opt (int key, char *arg, struct argp_state *state)
       break;
       
     default:
-      return ARGP_ERROR_UNKNOWN;
+      return ARGP_ERR_UNKNOWN;
     }
 }
 

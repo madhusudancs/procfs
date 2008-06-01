@@ -38,7 +38,7 @@
 /* Defines this Tanslator Name */
 char *netfs_server_name = PROCFS_SERVER_NAME;
 char *netfs_server_version = PROCFS_SERVER_VERSION;
-
+int netfs_maxsymlinks = 12;
 
 static const struct argp_child argp_children[] = 
   {
@@ -57,6 +57,12 @@ static char *args_doc = "PROCFSROOT";
 static char *doc = "proc pseudo-filesystem for Hurd implemented as a translator"
 "This is still under very humble and initial stages of development.\n"
 "Any Contribution or help is welcomed. The code may not even compile";
+
+
+/* The Filesystem */
+struct procfs *procfs;
+
+volatile struct mapped_time_value *procfs_maptime;
 
 /* Startup options.  */
 static const struct argp_option procfs_options[] = 
@@ -97,4 +103,28 @@ main (int argc, char **argv)
       args_doc, doc, argp_children,
       NULL, NULL  
     }; 
+    
+    procfs_init ();
+    
+    /* Parse the command line arguments */
+    argp_parse (&argp, argc, argv, 0, 0, 0);
+    
+    task_get_bootstrap_port (mach_task_self (), &bootstrap);
+    
+    netfs_init ();
+    
+    if (maptime_map (0, 0, &procfs_maptime)) 
+      {
+        perror (PROCFS_SERVER_NAME ": Cannot map time");
+        return 1;
+      }
+      
+    /* Start netfs activities */  
+    underlying_node = netfs_startup (bootstrap, 0);
+    
+    /* Create our root node */
+    netfs_root_node = procfs->root;
+    
+    netfs_server_loop ();
+    return 1;
 }

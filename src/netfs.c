@@ -69,3 +69,286 @@ error_t netfs_set_translator (struct iouser *cred, struct node *node,
 {
   return EROFS;
 }
+
+/* Attempt to create a file named NAME in DIR for USER with MODE.  Set *NODE
+   to the new node upon return.  On any error, clear *NODE.  *NODE should be
+   locked on success; no matter what, unlock DIR before returning.  */
+error_t
+netfs_attempt_create_file (struct iouser *user, struct node *dir,
+			   char *name, mode_t mode, struct node **node)
+{
+  *node = NULL;
+  mutex_unlock (&dir->lock);
+  return EROFS;
+}
+
+/* Node NODE is being opened by USER, with FLAGS.  NEWNODE is nonzero if we
+   just created this node.  Return an error if we should not permit the open
+   to complete because of a permission restriction. */
+error_t
+netfs_check_open_permissions (struct iouser *user, struct node *node,
+			      int flags, int newnode)
+{
+  error_t err = procfs_refresh_node (node);
+  if (!err && (flags & O_READ))
+    err = fshelp_access (&node->nn_stat, S_IREAD, user);
+  if (!err && (flags & O_WRITE))
+    err = fshelp_access (&node->nn_stat, S_IWRITE, user);
+  if (!err && (flags & O_EXEC))
+    err = fshelp_access (&node->nn_stat, S_IEXEC, user);
+  return err;
+}
+
+/* This should attempt a utimes call for the user specified by CRED on node
+   NODE, to change the atime to ATIME and the mtime to MTIME. */
+error_t
+netfs_attempt_utimes (struct iouser *cred, struct node *node,
+		      struct timespec *atime, struct timespec *mtime)
+{
+  error_t err = procfs_refresh_node (node);
+  int flags = TOUCH_CTIME;
+
+  if (! err)
+    err = fshelp_isowner (&node->nn_stat, cred);
+
+  if (! err)
+    {
+      if (atime)
+	node->nn_stat.st_atim = *atime;
+	node->nn_stat.st_atime_usec = atime->tv_nsec / 1000;
+      else
+	flags |= TOUCH_ATIME;
+
+      if (mtime)
+	node->nn_stat.st_mtim = *mtime;
+	node->nn_stat.st_mtime_usec = mtime->tv_nsec / 1000;
+      else
+	flags |= TOUCH_MTIME;
+
+      fshelp_touch (&node->nn_stat, flags, procfs_maptime);
+    }
+
+  return err;
+}
+
+/* Return the valid access types (bitwise OR of O_READ, O_WRITE, and O_EXEC)
+   in *TYPES for file NODE and user CRED.  */
+error_t
+netfs_report_access (struct iouser *cred, struct node *node, int *types)
+{
+  error_t err = procfs_refresh_node (node);
+
+  if (! err)
+    {
+      *types = 0;
+      if (fshelp_access (&node->nn_stat, S_IREAD, cred) == 0)
+	*types |= O_READ;
+      if (fshelp_access (&node->nn_stat, S_IWRITE, cred) == 0)
+	*types |= O_WRITE;
+      if (fshelp_access (&node->nn_stat, S_IEXEC, cred) == 0)
+	*types |= O_EXEC;
+    }
+
+  return err;
+}
+
+/* The granularity with which we allocate space to return our result.  */
+#define DIRENTS_CHUNK_SIZE	(8*1024)
+
+/* Returned directory entries are aligned to blocks this many bytes long.
+   Must be a power of two.  */
+#define DIRENT_ALIGN 4
+#define DIRENT_NAME_OFFS offsetof (struct dirent, d_name)
+
+/* Length is structure before the name + the name + '\0', all
+   padded to a four-byte alignment.  */
+#define DIRENT_LEN(name_len)						      \
+  ((DIRENT_NAME_OFFS + (name_len) + 1 + (DIRENT_ALIGN - 1))		      \
+   & ~(DIRENT_ALIGN - 1))
+
+
+
+/* Fetch a directory  */
+error_t
+netfs_get_dirents (struct iouser *cred, struct node *dir,
+		 int first_entry, int max_entries, char **data,
+		 mach_msg_type_number_t *data_len,
+		 vm_size_t max_data_len, int *data_entries)
+{
+
+         /* STUB */
+         
+  return 0;
+}		 
+
+/* Lookup NAME in DIR for USER; set *NODE to the found name upon return.  If
+   the name was not found, then return ENOENT.  On any error, clear *NODE.
+   (*NODE, if found, should be locked, this call should unlock DIR no matter
+   what.) */
+error_t netfs_attempt_lookup (struct iouser *user, struct node *dir,
+			      char *name, struct node **node)
+{
+  error_t err = procfs_refresh_node (dir);
+
+
+             /* STUB */
+
+
+  return err;
+}
+
+/* Delete NAME in DIR for USER. */
+error_t netfs_attempt_unlink (struct iouser *user, struct node *dir,
+			      char *name)
+{
+  return EROFS;
+}
+
+/* Note that in this one call, neither of the specific nodes are locked. */
+error_t netfs_attempt_rename (struct iouser *user, struct node *fromdir,
+			      char *fromname, struct node *todir,
+			      char *toname, int excl)
+{
+  return EROFS;
+}
+
+/* This should attempt a chmod call for the user specified by CRED on node
+   NODE, to change the owner to UID and the group to GID. */
+error_t netfs_attempt_chown (struct iouser *cred, struct node *node,
+			     uid_t uid, uid_t gid)
+{
+  return EROFS;
+}
+
+/* This should attempt a chauthor call for the user specified by CRED on node
+   NODE, to change the author to AUTHOR. */
+error_t netfs_attempt_chauthor (struct iouser *cred, struct node *node,
+				uid_t author)
+{
+  return EROFS;
+}
+
+/* This should attempt a chmod call for the user specified by CRED on node
+   NODE, to change the mode to MODE.  Unlike the normal Unix and Hurd meaning
+   of chmod, this function is also used to attempt to change files into other
+   types.  If such a transition is attempted which is impossible, then return
+   EOPNOTSUPP.  */
+error_t netfs_attempt_chmod (struct iouser *cred, struct node *node,
+			     mode_t mode)
+{
+  return EROFS;
+}
+
+/* Attempt to turn NODE (user CRED) into a symlink with target NAME. */
+error_t netfs_attempt_mksymlink (struct iouser *cred, struct node *node,
+				 char *name)
+{
+  return EROFS;
+}
+
+/* Attempt to turn NODE (user CRED) into a device.  TYPE is either S_IFBLK or
+   S_IFCHR. */
+error_t netfs_attempt_mkdev (struct iouser *cred, struct node *node,
+			     mode_t type, dev_t indexes)
+{
+  return EROFS;
+}
+
+
+/* This should attempt a chflags call for the user specified by CRED on node
+   NODE, to change the flags to FLAGS. */
+error_t netfs_attempt_chflags (struct iouser *cred, struct node *node,
+			       int flags)
+{
+  return EROFS;
+}
+
+/* This should attempt to set the size of the file NODE (for user CRED) to
+   SIZE bytes long. */
+error_t netfs_attempt_set_size (struct iouser *cred, struct node *node,
+				off_t size)
+{
+  return EROFS;
+}
+
+/* This should attempt to fetch filesystem status information for the remote
+   filesystem, for the user CRED. */
+error_t
+netfs_attempt_statfs (struct iouser *cred, struct node *node,
+		      struct statfs *st)
+{
+
+                /* STUB */
+                
+  return 0;
+}
+
+/* This should sync the entire remote filesystem.  If WAIT is set, return
+   only after sync is completely finished.  */
+error_t netfs_attempt_syncfs (struct iouser *cred, int wait)
+{
+  return 0;
+}
+
+/* Create a link in DIR with name NAME to FILE for USER.  Note that neither
+   DIR nor FILE are locked.  If EXCL is set, do not delete the target, but
+   return EEXIST if NAME is already found in DIR.  */
+error_t netfs_attempt_link (struct iouser *user, struct node *dir,
+			    struct node *file, char *name, int excl)
+{
+  return EROFS;
+}
+
+/* Attempt to create an anonymous file related to DIR for USER with MODE.
+   Set *NODE to the returned file upon success.  No matter what, unlock DIR. */
+error_t netfs_attempt_mkfile (struct iouser *user, struct node *dir,
+			      mode_t mode, struct node **node)
+{
+  *node = NULL;
+  mutex_unlock (&dir->lock);
+  return EROFS;
+}
+
+/* Read the contents of NODE (a symlink), for USER, into BUF. */
+error_t netfs_attempt_readlink (struct iouser *user, struct node *node, char *buf)
+{
+
+   /* STUB */
+   
+  return EINVAL;
+}
+
+/* Read from the file NODE for user CRED starting at OFFSET and continuing for
+   up to *LEN bytes.  Put the data at DATA.  Set *LEN to the amount
+   successfully read upon return.  */
+error_t netfs_attempt_read (struct iouser *cred, struct node *node,
+			    off_t offset, size_t *len, void *data)
+{
+  error_t err = 0;
+
+                 /* STUB */
+
+  return err;
+}
+
+/* Write to the file NODE for user CRED starting at OFSET and continuing for up
+   to *LEN bytes from DATA.  Set *LEN to the amount seccessfully written upon
+   return. */
+error_t netfs_attempt_write (struct iouser *cred, struct node *node,
+			     off_t offset, size_t *len, void *data)
+{
+  return EROFS;
+}
+
+
+
+/* The user must define this function.  Node NP is all done; free
+   all its associated storage. */
+void netfs_node_norefs (struct node *np)
+{
+	mutex_lock (&np->lock);
+	*np->prevp = np->next;
+	np->next->prevp = np->prevp;
+	free_node (np);
+}
+

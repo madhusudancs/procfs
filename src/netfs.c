@@ -115,13 +115,11 @@ netfs_attempt_utimes (struct iouser *cred, struct node *node,
     {
       if (atime)
 	node->nn_stat.st_atim = *atime;
-	node->nn_stat.st_atime_usec = atime->tv_nsec / 1000;
       else
 	flags |= TOUCH_ATIME;
 
       if (mtime)
 	node->nn_stat.st_mtim = *mtime;
-	node->nn_stat.st_mtime_usec = mtime->tv_nsec / 1000;
       else
 	flags |= TOUCH_MTIME;
 

@@ -86,10 +86,6 @@ error_t procfs_refresh_node (struct node *node);
    reference in NODE. */
 error_t procfs_create_node (struct node **node);
 
-/* Refresh stat information for NODE.  This may
-   actually refresh the whole directory.  */
-error_t procfs_refresh_node (struct node *node);
-
 /* Remove NODE from its entry */
 error_t procfs_remove_node (struct node *node);
 

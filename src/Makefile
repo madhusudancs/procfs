@@ -24,7 +24,7 @@ target = procfs
 CC = gcc
 CFLAGS = -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 INCLUDES = -I.
-SRCS = netfs.c procfs.c
+SRCS = netfs.c procfs.c node.c bootstrap.c
 LCLHDRS = procfs.h
 
 OBJS = $(SRCS:.c = .o)

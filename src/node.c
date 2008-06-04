@@ -35,13 +35,26 @@
    with a single reference in NODE. */
 error_t procfs_create_node (struct node **node)
 {
+
     /* STUB */
+    
+  return 0;
+}
+
+/* Refresh stat information for NODE */
+error_t procfs_refresh_node (struct node *node)
+{
+
+    /*  STUB  */
+    
   return 0;
 }
 
 /* Remove NODE from its entry */
-error_t procfs_remove_node (struct node *node);
+error_t procfs_remove_node (struct node *node)
 {
+
     /* STUB */
+    
   return 0;    
 }

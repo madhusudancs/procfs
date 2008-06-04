@@ -63,6 +63,9 @@ static char *doc = "proc pseudo-filesystem for Hurd implemented as a translator"
 /* The Filesystem */
 struct procfs *procfs;
 
+/* The FILESYSTEM component of PROCFS_FS.  */
+char *proc_root;
+
 volatile struct mapped_time_value *procfs_maptime;
 
 /* Startup options.  */
@@ -98,6 +101,8 @@ main (int argc, char **argv)
 {
   error_t err;
   mach_port_t bootstrap, underlying_node;
+  struct stat underlying_stat;
+  
   struct argp argp = 
     {
       procfs_options, parse_procfs_opt,
@@ -105,27 +110,38 @@ main (int argc, char **argv)
       NULL, NULL  
     }; 
     
-    procfs_init ();
+  procfs_init ();
     
-    /* Parse the command line arguments */
-    argp_parse (&argp, argc, argv, 0, 0, 0);
+  /* Parse the command line arguments */
+  argp_parse (&argp, argc, argv, 0, 0, 0);
     
-    task_get_bootstrap_port (mach_task_self (), &bootstrap);
+  task_get_bootstrap_port (mach_task_self (), &bootstrap);
     
-    netfs_init ();
+  netfs_init ();
     
-    if (maptime_map (0, 0, &procfs_maptime)) 
-      {
-        perror (PROCFS_SERVER_NAME ": Cannot map time");
-        return 1;
-      }
+  if (maptime_map (0, 0, &procfs_maptime)) 
+    {
+      perror (PROCFS_SERVER_NAME ": Cannot map time");
+      return 1;
+    }
+
+  err = procfs_create (procfs_root, getpid (), &procfs);
+  if (err)
+    error (4, err, "%s", procfs_root);
       
-    /* Start netfs activities */  
-    underlying_node = netfs_startup (bootstrap, 0);
+  /* Create our root node */
+  netfs_root_node = procfs->root;
+
+  /* Start netfs activities */  
+  underlying_node = netfs_startup (bootstrap, 0);
+  if (io_stat (underlying_node, &underlying_stat))
+    error (1, err, "cannot stat underling node");
+
+  /* Initialize stat information of the root node.  */
+  netfs_root_node->nn_stat = underlying_stat;
+  netfs_root_node->nn_stat.st_mode =
+    S_IFDIR | (underlying_stat.st_mode & ~S_IFMT & ~S_ITRANS);
     
-    /* Create our root node */
-    netfs_root_node = procfs->root;
-    
-    netfs_server_loop ();
-    return 1;
+  netfs_server_loop ();
+  return 1;
 }

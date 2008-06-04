@@ -347,6 +347,6 @@ void netfs_node_norefs (struct node *np)
 	mutex_lock (&np->lock);
 	*np->prevp = np->next;
 	np->next->prevp = np->prevp;
-	free_node (np);
+	procfs_remove_node (np);
 }
 

@@ -56,7 +56,7 @@ struct procfs_dir_entry
   struct procfs_dir_entry *next, **self_p;
 
   /* Next entry in `directory order', or 0 if none known.  */
-  struct ftpfs_dir_entry *ordered_next, **ordered_self_p;
+  struct procfs_dir_entry *ordered_next, **ordered_self_p;
 
   /* When the presence/absence of this file was last checked.  */
   time_t name_timestamp;
@@ -92,7 +92,7 @@ struct procfs_dir
   /* The filesystem this directory is in.  */
   struct procfs *fs;
 
-  /* The path to this directory on the server.  */
+  /* The path to this directory in the filesystem.  */
   const char *fs_path;
 
   time_t stat_timestamp;
@@ -121,7 +121,7 @@ struct netnode
   unsigned int inode_num;
   
   /* If this is a directory, the contents, or 0 if not fetched.  */
-  struct ftpfs_dir *dir;
+  struct procfs_dir *dir;
   
   /* pointer to node structure, assigned to this node. */
   struct node *node;

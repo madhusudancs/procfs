@@ -33,6 +33,41 @@
 error_t procfs_dir_create (struct procfs *fs, struct node *node,
 			  const char *path, struct procfs_dir **dir)
 {
+  struct procfs_dir *new = malloc (sizeof (struct procfs_dir));
+  if (!new) 
+    return ENOMEM;
+  struct procfs_dir_entry **htable = calloc (INIT_HTABLE_LEN,
+                            sizeof (struct procfs_dir_entry *));
+  if (!htable)
+    return ENOMEM;
+
+  /* Hold a reference to the new dir's node.  */
+  spin_lock (&netfs_node_refcnt_lock);
+  node->references++;
+  spin_unlock (&netfs_node_refcnt_lock);
+
+  new->num_entries = 0;
+  new->num_live_entries = 0;
+  new->htable_len = INIT_HTABLE_LEN;
+  new->htable = htable;
+  new->ordered = NULL;
+  new->fs_path = path;
+  new->fs = fs;
+  new->node = node;
+  new->stat_timestamp = 0;
+  new->name_timestamp = 0;
+
+  *dir = new;
+
+  return 0;
+}
+
+/* Lookup NAME in DIR, returning its entry, or an error. 
+   *NODE will contain the result node, locked, and with
+   an additional reference, or 0 if an error occurs.  */
+error_t procfs_dir_lookup (struct procfs_dir *dir, const char *name,
+			  struct node **node)
+{
 
   /*  STUB */
   
@@ -54,20 +89,8 @@ void procfs_dir_remove (struct procfs_dir *dir)
 error_t procfs_dir_refresh (struct procfs_dir *dir)
 {
 
-  /*  STUB */
+    /*  STUB */
   
   return 0;
 }
-
-/* Lookup NAME in DIR, returning its entry, or an error. 
-   *NODE will contain the result node, locked, and with
-   an additional reference, or 0 if an error occurs.  */
-error_t procfs_dir_lookup (struct procfs_dir *dir, const char *name,
-			  struct node **node)
-{
-
-  /*  STUB */
-  
-  return 0;
-}
-
+			  

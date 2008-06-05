@@ -64,7 +64,7 @@ static char *doc = "proc pseudo-filesystem for Hurd implemented as a translator"
 struct procfs *procfs;
 
 /* The FILESYSTEM component of PROCFS_FS.  */
-char *proc_root;
+char *procfs_root;
 
 volatile struct mapped_time_value *procfs_maptime;
 

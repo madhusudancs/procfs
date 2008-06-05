@@ -31,7 +31,9 @@
 #define PROCFS_SERVER_VERSION "0.0.1"
 
 #include <stdlib.h>
+#include <cthreads.h>
 #include <maptime.h>
+#include <hurd/ihash.h>
 
 /* A single entry in a directory.  */
 struct procfs_dir_entry
@@ -165,7 +167,7 @@ error_t procfs_init ();
 /* Refresh stat information for NODE */
 error_t procfs_refresh_node (struct node *node);
 
-/* Return a new node in NODE, with a name NAME,
+/* Return a new node in NODE, with a name NAME, 
    and return the new node with a single
    reference in NODE. */
 error_t procfs_create_node (struct procfs_dir_entry *dir_entry, 

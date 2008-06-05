@@ -24,7 +24,7 @@ target = procfs
 CC = gcc
 CFLAGS = -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 INCLUDES = -I.
-SRCS = netfs.c procfs.c node.c bootstrap.c
+SRCS = netfs.c procfs.c node.c bootstrap.c procfs_dir.c
 LCLHDRS = procfs.h
 
 OBJS = $(SRCS:.c = .o)
@@ -33,7 +33,7 @@ HURDLIBS = -lnetfs -lfshelp -liohelp -lports
 all: $(target)
 
 $(target): $(OBJS)
-        $(CC) $(CFLAGS) -o $(target) $(OBJS) $(HURDLIBS)
+	$(CC) $(CFLAGS) -o $(target) $(OBJS) $(HURDLIBS)
         
 %.o: %.c $(LCLHDRS)
-        $(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<

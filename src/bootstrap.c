@@ -23,22 +23,71 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. 
 */
 
+#include <stddef.h>
+#include <hurd/ihash.h>
+#include <hurd/netfs.h>
+
 #include "procfs.h"
 
 /* This function is used to initialize the whole translator, can be
    effect called as bootstrapping the translator. */
-void procfs_init ()
+error_t procfs_init ()
 {
   
     /*  STUB  */
-    
+   
+  return 0; 
 }
 
 /* Create a new procfs filesystem.  */
-error_t procfs_create (struct procfs **fs)
+error_t procfs_create (char *procfs_root, int fsid,
+                       struct procfs **fs)
 {
- /*  STUB  */
-  return 0;
+  error_t err;
+  /* This is the enclosing directory for this filesystem's
+     root node  */
+  struct procfs_dir *topmost_root_dir;
+  
+  /* And also a topmost-root node, just used for locking
+     TOPMOST_ROOT_DIR.  */
+  struct node *topmost_root;
+  
+  /* The new node for the filesystem's root.  */
+  struct procfs *new = malloc (sizeof (struct procfs));
+
+  if (! new)
+    return ENOMEM;
+
+  new->fsid = fsid;
+  new->next_inode = 2;
+
+  hurd_ihash_init (&new->inode_mappings,
+		   offsetof (struct procfs_dir_entry, inode_locp));
+  spin_lock_init (&new->inode_mappings_lock);
+
+  topmost_root = netfs_make_node (0);
+  if (! topmost_root)
+    err = ENOMEM;
+  else
+    {
+      err = procfs_dir_create (new, topmost_root, procfs_root,
+                               &topmost_root_dir);
+      if (! err)
+        {
+          /* ADDITIONAL BOOTSTRAPPING OF THE ROOT NODE MAYBE REQUIRED
+	     LEFT AS A STUB  */
+        }
+    }
+
+  if (err)
+    {
+      hurd_ihash_destroy (&new->inode_mappings);
+      free (new);
+    }
+  else
+    *fs = new;
+
+  return err;
 }
 
 

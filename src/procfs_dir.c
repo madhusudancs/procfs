@@ -25,8 +25,13 @@
 
 #include <unistd.h>
 #include <hurd/netfs.h>
+#include <hurd/ihash.h>
 
 #include "procfs.h"
+
+/* Initial HASHTABLE length for the new directories to be created. */
+#define INIT_HTABLE_LEN 5
+
 
 /* Return in DIR a new procfs directory, in the filesystem FS,
    with node NODE and path PATH. */

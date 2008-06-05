@@ -1,5 +1,282 @@
 ------------------------------------------------------------------------------------------------------------
 
+2008-06-05 Build 12 - /* SUCCESSFUL BUILD */
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c node.c bootstrap.c procfs_dir.c -lnetfs -lfshelp -liohelp -lports
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:96: warning: control reaches end of non-void function
+procfs_dir.c: In function 'procfs_dir_create':
+procfs_dir.c:40: error: 'INIT_HTABLE_LEN' undeclared (first use in this function)
+procfs_dir.c:40: error: (Each undeclared identifier is reported only once
+procfs_dir.c:40: error: for each function it appears in.)
+procfs_dir.c: In function 'procfs_dir_remove':
+procfs_dir.c:85: warning: 'return' with a value, in function returning void
+make: *** [procfs] Error 1
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+2008-06-05 Build 11
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c node.c bootstrap.c procfs_dir.c -lnetfs -lfshelp -liohelp -lports
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:96: warning: control reaches end of non-void function
+procfs_dir.c: In function 'procfs_dir_create':
+procfs_dir.c:40: error: 'INIT_HTABLE_LEN' undeclared (first use in this function)
+procfs_dir.c:40: error: (Each undeclared identifier is reported only once
+procfs_dir.c:40: error: for each function it appears in.)
+procfs_dir.c: In function 'procfs_dir_remove':
+procfs_dir.c:85: warning: 'return' with a value, in function returning void
+make: *** [procfs] Error 1
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+2008-06-05 Build 10
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c node.c bootstrap.c procfs_dir.c -lnetfs -lfshelp -liohelp -lports
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:96: warning: control reaches end of non-void function
+procfs_dir.c: In function 'procfs_dir_create':
+procfs_dir.c:39: error: 'INIT_HTABLE_LEN' undeclared (first use in this function)
+procfs_dir.c:39: error: (Each undeclared identifier is reported only once
+procfs_dir.c:39: error: for each function it appears in.)
+procfs_dir.c: In function 'procfs_dir_remove':
+procfs_dir.c:84: warning: 'return' with a value, in function returning void
+make: *** [procfs] Error 1
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+2008-06-05 Build 9
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c node.c bootstrap.c -lnetfs -lfshelp -liohelp -lports
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:96: warning: control reaches end of non-void function
+/tmp/ccPsqUIR.o: In function `procfs_create':
+/root/gsoc/procfs/src/bootstrap.c:73: undefined reference to `procfs_dir_create'
+collect2: ld returned 1 exit status
+make: *** [procfs] Error 1
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+2008-06-05 Build 8
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c node.c bootstrap.c -lnetfs -lfshelp -liohelp -lports
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:96: warning: control reaches end of non-void function
+In file included from bootstrap.c:26:
+procfs.h:48: error: field 'stat' has incomplete type
+bootstrap.c: In function 'procfs_create':
+bootstrap.c:61: warning: implicit declaration of function 'offsetof'
+bootstrap.c:61: error: expected expression before 'struct'
+bootstrap.c:64: warning: implicit declaration of function 'netfs_make_node'
+bootstrap.c:64: warning: assignment makes pointer from integer without a cast
+make: *** [procfs] Error 1
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+2008-06-05 Build 7
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c node.c bootstrap.c -lnetfs -lfshelp -liohelp -lports
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:96: warning: control reaches end of non-void function
+procfs.c: In function 'main':
+procfs.c:128: error: 'procfs_root' undeclared (first use in this function)
+procfs.c:128: error: (Each undeclared identifier is reported only once
+procfs.c:128: error: for each function it appears in.)
+In file included from bootstrap.c:26:
+procfs.h:47: error: field 'stat' has incomplete type
+procfs.h:152: error: expected specifier-qualifier-list before 'spin_lock_t'
+bootstrap.c:31: error: conflicting types for 'procfs_init'
+procfs.h:164: error: previous declaration of 'procfs_init' was here
+bootstrap.c: In function 'procfs_create':
+bootstrap.c:60: warning: implicit declaration of function 'offsetof'
+bootstrap.c:60: error: expected expression before 'struct'
+bootstrap.c:61: warning: implicit declaration of function 'spin_lock_init'
+bootstrap.c:61: error: 'struct procfs' has no member named 'inode_mappings_lock'
+bootstrap.c:63: warning: implicit declaration of function 'netfs_make_node'
+bootstrap.c:63: warning: assignment makes pointer from integer without a cast
+bootstrap.c:73: error: expected expression before '}' token
+make: *** [procfs] Error 1
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+2008-06-04 Build 6 - /* SUCCESSFUL BUILD */
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c node.c bootstrap.c -lnetfs -lfshelp -liohelp -lports
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:93: warning: control reaches end of non-void function
+procfs.c: In function 'main':
+procfs.c:108: warning: implicit declaration of function 'procfs_init'
+procfs.c:99: warning: unused variable 'err'
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+2008-06-03 Build 5
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c node.c netfs.c -lnetfs -lfshelp -liohelp -lports
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:93: warning: control reaches end of non-void function
+procfs.c: In function 'main':
+procfs.c:108: warning: implicit declaration of function 'procfs_init'
+procfs.c:99: warning: unused variable 'err'
+/tmp/ccyreI6k.o: In function `netfs_validate_stat':
+/root/gsoc/procfs/src/netfs.c:38: multiple definition of `netfs_validate_stat'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:38: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_sync':
+/root/gsoc/procfs/src/netfs.c:46: multiple definition of `netfs_attempt_sync'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:46: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_mkdir':
+/root/gsoc/procfs/src/netfs.c:54: multiple definition of `netfs_attempt_mkdir'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:54: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_rmdir':
+/root/gsoc/procfs/src/netfs.c:61: multiple definition of `netfs_attempt_rmdir'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:61: first defined here
+/tmp/ccyreI6k.o: In function `netfs_set_translator':
+/root/gsoc/procfs/src/netfs.c:69: multiple definition of `netfs_set_translator'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:69: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_create_file':
+/root/gsoc/procfs/src/netfs.c:79: multiple definition of `netfs_attempt_create_file'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:79: first defined here
+/tmp/ccyreI6k.o: In function `netfs_check_open_permissions':
+/root/gsoc/procfs/src/netfs.c:91: multiple definition of `netfs_check_open_permissions'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:91: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_utimes':
+/root/gsoc/procfs/src/netfs.c:107: multiple definition of `netfs_attempt_utimes'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:107: first defined here
+/tmp/ccyreI6k.o: In function `netfs_report_access':
+/root/gsoc/procfs/src/netfs.c:136: multiple definition of `netfs_report_access'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:136: first defined here
+/tmp/ccyreI6k.o: In function `netfs_get_dirents':
+/root/gsoc/procfs/src/netfs.c:175: multiple definition of `netfs_get_dirents'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:175: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_lookup':
+/root/gsoc/procfs/src/netfs.c:188: multiple definition of `netfs_attempt_lookup'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:188: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_unlink':
+/root/gsoc/procfs/src/netfs.c:201: multiple definition of `netfs_attempt_unlink'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:201: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_rename':
+/root/gsoc/procfs/src/netfs.c:209: multiple definition of `netfs_attempt_rename'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:209: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_chown':
+/root/gsoc/procfs/src/netfs.c:217: multiple definition of `netfs_attempt_chown'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:217: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_chauthor':
+/root/gsoc/procfs/src/netfs.c:225: multiple definition of `netfs_attempt_chauthor'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:225: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_chmod':
+/root/gsoc/procfs/src/netfs.c:236: multiple definition of `netfs_attempt_chmod'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:236: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_mksymlink':
+/root/gsoc/procfs/src/netfs.c:243: multiple definition of `netfs_attempt_mksymlink'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:243: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_mkdev':
+/root/gsoc/procfs/src/netfs.c:251: multiple definition of `netfs_attempt_mkdev'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:251: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_chflags':
+/root/gsoc/procfs/src/netfs.c:260: multiple definition of `netfs_attempt_chflags'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:260: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_set_size':
+/root/gsoc/procfs/src/netfs.c:268: multiple definition of `netfs_attempt_set_size'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:268: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_statfs':
+/root/gsoc/procfs/src/netfs.c:277: multiple definition of `netfs_attempt_statfs'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:277: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_syncfs':
+/root/gsoc/procfs/src/netfs.c:287: multiple definition of `netfs_attempt_syncfs'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:287: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_link':
+/root/gsoc/procfs/src/netfs.c:296: multiple definition of `netfs_attempt_link'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:296: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_mkfile':
+/root/gsoc/procfs/src/netfs.c:304: multiple definition of `netfs_attempt_mkfile'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:304: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_readlink':
+/root/gsoc/procfs/src/netfs.c:312: multiple definition of `netfs_attempt_readlink'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:312: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_read':
+/root/gsoc/procfs/src/netfs.c:324: multiple definition of `netfs_attempt_read'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:324: first defined here
+/tmp/ccyreI6k.o: In function `netfs_attempt_write':
+/root/gsoc/procfs/src/netfs.c:337: multiple definition of `netfs_attempt_write'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:337: first defined here
+/tmp/ccyreI6k.o: In function `netfs_node_norefs':
+/root/gsoc/procfs/src/netfs.c:346: multiple definition of `netfs_node_norefs'
+/tmp/cc57pDTn.o:/root/gsoc/procfs/src/netfs.c:346: first defined here
+/tmp/cchTU6Qa.o: In function `main':
+/root/gsoc/procfs/src/procfs.c:108: undefined reference to `procfs_init'
+collect2: ld returned 1 exit status
+make: *** [procfs] Error 1
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+2008-06-03 Build 4
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c -lnetfs -lfshelp -liohelp -lports
+netfs.c: In function 'netfs_node_norefs':
+netfs.c:350: warning: implicit declaration of function 'free_node'
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:93: warning: control reaches end of non-void function
+procfs.c: In function 'main':
+procfs.c:108: warning: implicit declaration of function 'procfs_init'
+procfs.c:99: warning: unused variable 'err'
+/tmp/ccQw8WQO.o: In function `netfs_validate_stat':
+/root/gsoc/procfs/src/netfs.c:39: undefined reference to `procfs_refresh_node'
+/tmp/ccQw8WQO.o: In function `netfs_check_open_permissions':
+/root/gsoc/procfs/src/netfs.c:92: undefined reference to `procfs_refresh_node'
+/tmp/ccQw8WQO.o: In function `netfs_attempt_utimes':
+/root/gsoc/procfs/src/netfs.c:108: undefined reference to `procfs_refresh_node'
+/tmp/ccQw8WQO.o: In function `netfs_report_access':
+/root/gsoc/procfs/src/netfs.c:137: undefined reference to `procfs_refresh_node'
+/tmp/ccQw8WQO.o: In function `netfs_attempt_lookup':
+/root/gsoc/procfs/src/netfs.c:189: undefined reference to `procfs_refresh_node'
+/tmp/ccQw8WQO.o: In function `netfs_node_norefs':
+/root/gsoc/procfs/src/netfs.c:350: undefined reference to `free_node'
+/tmp/cc95fSPM.o: In function `main':
+/root/gsoc/procfs/src/procfs.c:108: undefined reference to `procfs_init'
+collect2: ld returned 1 exit status
+make: *** [procfs] Error 1
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+2008-06-03 Build 3
+
+gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c -lnetfs -lfshelp -liohelp -lports
+netfs.c: In function 'netfs_attempt_utimes':
+netfs.c:118: error: 'io_statbuf_t' has no member named 'st_atime_usec'
+netfs.c:119: error: expected expression before 'else'
+netfs.c:124: error: 'io_statbuf_t' has no member named 'st_mtime_usec'
+netfs.c:125: error: expected expression before 'else'
+netfs.c: In function 'netfs_node_norefs':
+netfs.c:352: warning: implicit declaration of function 'free_node'
+procfs.c: In function 'parse_procfs_opt':
+procfs.c:93: warning: control reaches end of non-void function
+procfs.c: In function 'main':
+procfs.c:108: warning: implicit declaration of function 'procfs_init'
+procfs.c:99: warning: unused variable 'err'
+make: *** [procfs] Error 1
+
+
+
+------------------------------------------------------------------------------------------------------------
+
 2008-06-01 Build 2
 
 gcc -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -o procfs netfs.c procfs.c -lnetfs -lfshelp -liohelp -lports
@@ -39,6 +316,8 @@ collect2: ld returned 1 exit status
 make: *** [procfs] Error 1
 
 ------------------------------------------------------------------------------------------------------------
+
+
 
 2008-06-01 Build 1 
 

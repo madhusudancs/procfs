@@ -22,6 +22,14 @@
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. 
+   
+   A portion of the code in this file is based on ftpfs code
+   present in the hurd repositories copyrighted to FSF. The
+   Copyright notice from that file is given below.
+   
+   Copyright (C) 1997,98,2002 Free Software Foundation, Inc.
+   Written by Miles Bader <miles@gnu.org>
+   This file is part of the GNU Hurd.
 */
 
 #ifndef __PROCFS_H__

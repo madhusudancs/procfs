@@ -30,10 +30,14 @@
 #define PROCFS_SERVER_NAME "procfs"
 #define PROCFS_SERVER_VERSION "0.0.1"
 
+/* /proc Filesystem type. */
+#define PROCFILESYSTEM "procfs"
+
 #include <stdlib.h>
 #include <cthreads.h>
 #include <maptime.h>
 #include <hurd/ihash.h>
+#include <ps.h>
 
 /* A single entry in a directory.  */
 struct procfs_dir_entry
@@ -57,7 +61,7 @@ struct procfs_dir_entry
      this is a deleted entry, awaiting final disposal.  */
   struct procfs_dir_entry *next, **self_p;
 
-  /* Next entry in `directory order', or 0 if none known.  */
+  /* Next entry in 'directory order', or 0 if none known.  */
   struct procfs_dir_entry *ordered_next, **ordered_self_p;
 
   /* When the presence/absence of this file was last checked.  */
@@ -83,7 +87,7 @@ struct procfs_dir
   struct procfs_dir_entry **htable;
   size_t htable_len;		/* # of elements in HTABLE (not bytes).  */
 
-  /* List of dir entries in `directory order', in a linked list using the
+  /* List of dir entries in 'directory order', in a linked list using the
      ORDERED_NEXT and ORDERED_SELF_P fields in each entry.  Not all entries
      in HTABLE need be in this list.  */
   struct procfs_dir_entry *ordered;

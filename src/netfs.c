@@ -173,10 +173,105 @@ netfs_get_dirents (struct iouser *cred, struct node *dir,
 		 mach_msg_type_number_t *data_len,
 		 vm_size_t max_data_len, int *data_entries)
 {
+  error_t err = procfs_refresh_node (dir);
+  struct procfs_dir_entry *dir_entry;
+  
+  if (! err)
+    {
+      if (dir->nn->dir) 
+        {
+          if (! procfs_dir_refresh (dir->nn->dir))
+            {
+              for (dir_entry = dir->nn->dir->ordered; first_entry > 0 &&
+                  dir_entry; first_entry--,
+                  dir_entry = dir_entry->ordered_next);
+              if (! dir_entry )
+                max_entries = 0;
+                 
+              if (max_entries != 0)
+                {  
+                  size_t size = 0;
+                  char *p;
+                  int count = 0;
+              
+                  if (max_len == 0) 
+                    size = DIRENTS_CHUNK_SIZE;
+                  else if (max_len > DIRENTS_CHUNK_SIZE)
+                    size = DIRENTS_CHUNK_SIZE;
+                  else 
+                    size = max_len;  
+                
+                  *data = mmap (0, size, PROT_READ|PROT_WRITE,
+		            MAP_ANON, 0, 0);
+		             
+	          err = ((void *) *data == (void *) -1) ? errno : 0;
+	       
+	          if (! err)
+	            {
+	              p = *data;
+	           
+	              /* This gets all the actual entries present.  */
+                      while ((max_entries == -1 || count < max_entries) && dir_entry)
+                        {
+                          struct dirent hdr;
+                          size_t name_len = strlen (dir_entry->name);
+                          size_t sz = DIRENT_LEN (name_len);
+                          int entry_type = IFTODT (dir_entry->stat.st_mode);
+                   
+                          if ((p - *data) + sz > size)
+       		            {
+		              if (max_data_len > 0)
+		                break;
+		              else   /* The Buffer Size must be increased. */
+                                {
+		                  vm_address_t extension = (vm_address_t)(*data + size);
+		                  err = vm_allocate (mach_task_self (), &extension,
+					 DIRENTS_CHUNK_SIZE, 0);
+					 
+		                  if (err)
+			            break;
+			           
+		                  size += DIRENTS_CHUNK_SIZE;
+		                }
+		            }
 
-         /* STUB */
-         
-  return 0;
+	                  hdr.d_namlen = name_len;
+                          hdr.d_fileno = dir_entry->stat.st_ino;
+	                  hdr.d_reclen = sz;
+	                  hdr.d_type = entry_type;
+
+	                  memcpy (p, &hdr, DIRENT_NAME_OFFS);
+	                  strcpy (p + DIRENT_NAME_OFFS, dir_entry->name);
+	                  p += sz;
+
+                          count++;
+	                  dir_entry = dir_entry->ordered_next;
+                        }
+                        
+                      if (err)
+                        munmap (*data, size);
+                      else
+                        {
+	                  vm_address_t alloc_end = (vm_address_t)(*data + size);
+	                  vm_address_t real_end = round_page (p);
+	                  if (alloc_end > real_end)
+		            munmap ((caddr_t) real_end, alloc_end - real_end);
+	                  *data_len = p - *data;
+	                  *data_entries = count;
+	                }  
+	            }
+                }
+              else
+                {
+                  *data_len = 0;
+                  *data_entries = 0;
+                }
+            }
+        }
+      else
+        return ENOTDIR;          
+    }          
+  return err;
 }		 
 
 /* Lookup NAME in DIR for USER; set *NODE to the found name upon return.  If
@@ -275,9 +370,8 @@ error_t
 netfs_attempt_statfs (struct iouser *cred, struct node *node,
 		      struct statfs *st)
 {
-
-                /* STUB */
-                
+  st->f_type = PROCFILESYSTEM;
+  st->f_fsid = getpid ();
   return 0;
 }
 
@@ -329,7 +423,7 @@ error_t netfs_attempt_read (struct iouser *cred, struct node *node,
   return err;
 }
 
-/* Write to the file NODE for user CRED starting at OFSET and continuing for up
+/* Write to the file NODE for user CRED starting at OFFSET and continuing for up
    to *LEN bytes from DATA.  Set *LEN to the amount seccessfully written upon
    return. */
 error_t netfs_attempt_write (struct iouser *cred, struct node *node,

@@ -45,7 +45,8 @@ error_t procfs_create_node (struct procfs_dir_entry *dir_entry,
 
   if (! nn)
     return ENOMEM;
-
+  if (! fs_path)
+    fs_path = strdup ("");
   nn->fs = dir_entry->dir->fs;
   nn->dir_entry = dir_entry;
   nn->dir = NULL;
@@ -78,13 +79,106 @@ error_t procfs_create_node (struct procfs_dir_entry *dir_entry,
   return 0;
 }
 
+/* Update the directory entry for NAME to reflect ST and SYMLINK_TARGET.
+   True is returned if successful, or false if there was a memory allocation
+   error.  TIMESTAMP is used to record the time of this update.  */
+static void
+update_entry (struct procfs_dir_entry *dir_entry, const struct stat *st,
+	      const char *symlink_target, time_t timestamp)
+{
+  ino_t ino;
+  struct procfs *fs = dir_entry->dir->fs;
+
+  if (dir_entry->stat.st_ino)
+    ino = dir_entry->stat.st_ino;
+  else
+    ino = fs->next_inode++;
+
+  dir_entry->name_timestamp = timestamp;
+
+  if (st)
+    /* The ST and SYMLINK_TARGET parameters are only valid if ST isn't 0.  */
+    {
+      dir_entry->stat = *st;
+      dir_entry->stat_timestamp = timestamp;
+
+      if (!dir_entry->symlink_target || !symlink_target
+	  || strcmp (dir_entry->symlink_target, symlink_target) != 0)
+	{
+	  if (dir_entry->symlink_target)
+	    free (dir_entry->symlink_target);
+	  dir_entry->symlink_target = symlink_target ? strdup (symlink_target) : 0;
+	}
+    }
+
+  /* The st_ino field is always valid.  */
+  dir_entry->stat.st_ino = ino;
+  dir_entry->stat.st_fsid = fs->fsid;
+  dir_entry->stat.st_fstype = PROCFILESYSTEM;
+}
+
 /* Refresh stat information for NODE */
 error_t procfs_refresh_node (struct node *node)
 {
+  struct netnode *nn = node->nn;
+  struct procfs_dir_entry *dir_entry = nn->dir_entry;
 
-    /*  STUB  */
-    
-  return 0;
+  if (! dir_entry)
+    /* This is a deleted node, don't attempt to do anything.  */
+    return 0;
+  else
+    {
+      error_t err = 0;
+      
+      struct timeval tv;
+      maptime_read (procfs_maptime, &tv); 
+  
+      time_t timestamp = tv.tv_sec;
+
+      struct procfs_dir *dir = dir_entry->dir;
+
+      mutex_lock (&dir->node->lock);
+
+      if (! dir_entry->self_p)
+	/* This is a deleted entry, just awaiting disposal; do so.  */
+	{
+/*	  nn->dir_entry = 0;
+	  free_entry (dir_entry);
+	  return 0;
+*/
+	}
+
+      else if (dir_entry->noent)
+	err = ENOENT;
+      else 
+        {
+          err =  procfs_dir_refresh (dir_entry->dir, 
+          dir_entry->dir->node == dir_entry->dir->fs->root);
+	  if (!err && dir_entry->noent)
+	    err = ENOENT;
+
+  	  if (err == ENOENT)
+	    {
+	      dir_entry->noent = 1; /* A negative entry.  */
+	      dir_entry->name_timestamp = timestamp;
+	    }
+         else
+	    {
+	      /* Refresh the root node with the old stat
+                 information.  */             
+              update_entry (dir_entry, &netfs_root_node->nn_stat, NULL, timestamp);     
+	    }
+	}
+
+      node->nn_stat = dir_entry->stat;
+      node->nn_translated = S_ISLNK (dir_entry->stat.st_mode) ? S_IFLNK : 0;
+      if (!nn->dir && S_ISDIR (dir_entry->stat.st_mode))
+	procfs_dir_create (nn->fs, node, nn->fs_path, &nn->dir);
+
+      mutex_unlock (&dir->node->lock);
+
+      return err;
+    }
 }
 
 /* Remove NODE from its entry */

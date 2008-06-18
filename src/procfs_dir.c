@@ -33,10 +33,11 @@
 */
 
 
-
+#include <stdio.h>
 #include <unistd.h>
 #include <hurd/netfs.h>
 #include <hurd/ihash.h>
+#include <sys/stat.h>
 
 #include "procfs.h"
 
@@ -79,16 +80,266 @@ error_t procfs_dir_create (struct procfs *fs, struct node *node,
   return 0;
 }
 
+/* Put the directory entry DIR_ENTRY into the hash table HTABLE. */
+static void
+insert (struct procfs_dir_entry *dir_entry,
+	struct procfs_dir_entry **htable, size_t htable_len)
+{
+  struct procfs_dir_entry **new_htable = &htable[dir_entry->hv % htable_len];
+  if (*new_htable)
+    (*new_htable)->self_p = &dir_entry->next;
+  dir_entry->next = *new_htable;
+  dir_entry->self_p = new_htable;
+  *new_htable = dir_entry;
+}
+
+/* Calculate NAME's hash value.  */
+static size_t
+hash (const char *name)
+{
+  size_t hash_value = 0;
+  while (*name)
+    hash_value = ((hash_value << 5) + *name++) & 0xFFFFFF;
+  return hash_value;
+}
+
+/* Extend the existing hashtable for DIR to accomodate values for new length
+   NEW_LEN. We retain all the previous entries. */
+static error_t
+rehash (struct procfs_dir *dir, size_t new_len)
+{
+  int count;
+  size_t old_len = dir->htable_len;
+  struct procfs_dir_entry **old_htable = dir->htable;
+  struct procfs_dir_entry **new_htable = (struct procfs_dir_entry **)
+    malloc (new_len * sizeof (struct procfs_dir_entry *));
+
+  if (! new_htable)
+    return ENOMEM;
+
+  bzero (new_htable, new_len * sizeof (struct procfs_dir_entry *));
+
+  for (count = 0; count < old_len; count++)
+    while (old_htable[count])
+      {
+	struct procfs_dir_entry *dir_entry = old_htable[count];
+
+	/* Remove DIR_ENTRY from the old table */
+	old_htable[count] = dir_entry->next;
+
+	insert (dir_entry, new_htable, new_len);
+      }
+
+  free (old_htable);
+
+  dir->htable = new_htable;
+  dir->htable_len = new_len;
+
+  return 0;
+}
+
+/* Lookup NAME in DIR and return its entry.  If there is no such entry, and
+   DNEW, the decision variable, is true, then a new entry is allocated and
+   returned, otherwise 0 is returned (if DNEW is true then 0 can be returned
+   if a memory allocation error occurs).  */
+struct procfs_dir_entry *
+lookup_entry (struct procfs_dir *dir, const char *name, int dnew)
+{
+  size_t hv = hash (name);
+  struct procfs_dir_entry *dir_entry = dir->htable[hv % dir->htable_len];
+
+  while (dir_entry && strcmp (name, dir_entry->name) != 0)
+    dir_entry = dir_entry->next;
+
+  if (!dir_entry && dnew)
+    {
+      if (dir->num_entries > dir->htable_len)
+	/* Grow the hash table.  */
+	if (rehash (dir, (dir->htable_len + 1) * 2 - 1) != 0)
+	  return 0;
+
+      dir_entry = 
+      (struct procfs_dir_entry *) malloc (sizeof (struct procfs_dir_entry));
+
+      if (dir_entry)
+	{
+	  dir_entry->hv = hv;
+	  dir_entry->name = strdup (name);
+	  dir_entry->node = 0;
+	  dir_entry->dir = dir;
+	  dir_entry->stat_timestamp = 0;
+	  bzero (&dir_entry->stat, sizeof dir_entry->stat);
+	  dir_entry->symlink_target = 0;
+	  dir_entry->noent = 0;
+	  dir_entry->valid = 0;
+	  dir_entry->name_timestamp = 0;
+	  dir_entry->ordered_next = 0;
+	  dir_entry->ordered_self_p = 0;
+	  dir_entry->next = 0;
+	  dir_entry->self_p = 0;
+	  insert (dir_entry, dir->htable, dir->htable_len);
+	  dir->num_entries++;
+	}
+    }
+
+  return dir_entry;
+}
+
+
 /* Lookup NAME in DIR, returning its entry, or an error. 
    *NODE will contain the result node, locked, and with
    an additional reference, or 0 if an error occurs.  */
 error_t procfs_dir_lookup (struct procfs_dir *dir, const char *name,
 			  struct node **node)
 {
-
-  /*  STUB */
+  struct procfs_dir_entry *dir_entry;
+  error_t err = 0;
+  char *fs_path = dir->fs_path;
   
+  struct timeval tv;
+  maptime_read (procfs_maptime, &tv); 
+  
+  time_t timestamp = tv.tv_sec;
+    
+  if (*name == '\0' || strcmp (name, ".") == 0)
+    /* Current directory -- just add an additional reference to DIR's node
+       and return it.  */
+    {
+      netfs_nref (dir->node);
+      *node = dir->node;
+      return 0;
+    }
+  else if (strcmp (name, "..") == 0)
+    /* Parent directory.  */
+    {
+      if (dir->node->nn->dir_entry)
+	{
+	  *node = dir->node->nn->dir_entry->dir->node;
+	  mutex_lock (&(*node)->lock);
+	  netfs_nref (*node);
+	}
+      else
+	{
+	  err = ENOENT;		/* No .. */
+	  *node = 0;
+	}
+
+      mutex_unlock (&dir->node->lock);
+
+      return err;
+    }
+
+  err =  procfs_dir_refresh (dir, dir->node == dir->fs->root);
+  if (!err && !dir_entry)
+    dir_entry = lookup_entry (dir, name, 0);
+    
+  if (! err)
+    {
+      if (dir_entry && !dir_entry->noent)
+	/* We've got a dir entry, get a node for it.  */
+	{
+	  /* If there's already a node, add a ref so that it doesn't go
+             away.  */
+	  spin_lock (&netfs_node_refcnt_lock);
+	  if (dir_entry->node)
+	    dir_entry->node->references++;
+	  spin_unlock (&netfs_node_refcnt_lock);
+
+	  if (! dir_entry->node)
+	    /* No node; make one and install it into E.  */
+	    {
+	      if (! fs_path)
+                err = EROFS;
+
+	      if (! err)
+		{
+		  err = procfs_create_node (dir_entry, fs_path, &dir_entry->node);
+
+		  if (!err && dir->num_live_entries++ == 0)
+		    /* Keep a reference to dir's node corresponding to
+		       children.  */
+		    {
+		      spin_lock (&netfs_node_refcnt_lock);
+		      dir->node->references++;
+		      spin_unlock (&netfs_node_refcnt_lock);
+		    }
+		}
+	    }
+
+	  if (! err)
+	    {
+	      *node = dir_entry->node;
+	      /* We have to unlock DIR's node before locking the child node
+		 because the locking order is always child-parent.  We know
+		 the child node won't go away because we already hold the
+		 additional reference to it.  */
+	      mutex_unlock (&dir->node->lock);
+	      mutex_lock (&dir_entry->node->lock);
+	    }
+	}
+      else
+	err = ENOENT;
+    }
+
+  if (err)
+    {
+      *node = 0;
+      mutex_unlock (&dir->node->lock);
+    }
+
+  if (fs_path)
+    free (fs_path);
+
+  return err;
   return 0;
+}
+
+/* Lookup the null name in DIR, and return a node for it in NODE.  Unlike
+   procfs_dir_lookup, this won't attempt to validate the existance of the
+   entry (to avoid opening a new connection if possible) -- that will happen
+   the first time the entry is refreshed.  Also unlink ftpfs_dir_lookup, this
+   function doesn't expect DIR to be locked, and won't return *NODE locked.
+   This function is only used for bootstrapping the root node.  */
+error_t
+procfs_dir_null_lookup (struct procfs_dir *dir, struct node **node)
+{
+  struct procfs_dir_entry *dir_entry;
+  error_t err = 0;
+
+  dir_entry = lookup_entry (dir, "", 1);
+  if (! dir_entry)
+    return ENOMEM;
+
+  if (! dir_entry->noent)
+    /* We've got a dir entry, get a node for it.  */
+    {
+      /* If there's already a node, add a ref so that it doesn't go away.  */
+      spin_lock (&netfs_node_refcnt_lock);
+      if (dir_entry->node)
+	dir_entry->node->references++;
+      spin_unlock (&netfs_node_refcnt_lock);
+
+      if (! dir_entry->node)
+	/* No node; make one and install it into DIR_ENTRY.  */
+	{
+	  err = procfs_create_node (dir_entry, dir->fs_path, &dir_entry->node);
+
+	  if (!err && dir->num_live_entries++ == 0)
+	    /* Keep a reference to dir's node corresponding to children.  */
+	    {
+	      spin_lock (&netfs_node_refcnt_lock);
+	      dir->node->references++;
+	      spin_unlock (&netfs_node_refcnt_lock);
+	    }
+	}
+
+      if (! err)
+	*node = dir_entry->node;
+    }
+  else
+    err = ENOENT;
+
+  return err;
 }
 
 /* Remove the specified DIR and free all its allocated
@@ -101,9 +352,28 @@ void procfs_dir_remove (struct procfs_dir *dir)
   return 0;
 }
 
+/* Make all the directory entries invalid  */
+static void
+make_dir_invalid (struct procfs_dir *dir)
+{
+  int count;
+  size_t len = dir->htable_len;
+  struct procfs_dir_entry **htable = dir->htable;
+  struct procfs_dir_entry *dir_entry;
+
+  for (count = 0; count < len; count++)
+    {
+      dir_entry = htable[count];
+      while (dir_entry)
+        {
+          dir_entry->valid = 0;
+          dir_entry = dir_entry->next;
+        }
+    }  
+}
 
 /* Refresh DIR.  */
-error_t procfs_dir_refresh (struct procfs_dir *dir)
+error_t procfs_dir_refresh (struct procfs_dir *dir, int isroot)
 {
   error_t err;
   
@@ -114,33 +384,12 @@ error_t procfs_dir_refresh (struct procfs_dir *dir)
   
   time_t timestamp = tv.tv_sec;
   cur_entry = &dir->ordered;
-  if (!dir->fs->root && !dir->fs->next_inode && !dir->fs->fsid
-      && dir->fs->fs_path == "")
+  if (isroot)
     err = procfs_fill_root_dir(dir, timestamp);
   else
     err = update_dir_entries (dir, timestamp);
-      
+     
   return err;
-}
-
-/* Make all the directory entries invalid  */
-static void
-make_dir_invalid (struct procfs_dir *dir)
-{
-  int count;
-  size_t len = dir->htable_len;
-  struct procfs_dir_entry **htable = dir->htable;
-  struct procfs_dir_entr *dir_entry;
-
-  for (count = 0; count < len; count++)
-    {
-      dir_entry = htable[i];
-      while (dir_entry)
-        {
-          dir_entry->valid = 0;
-          dir_entry = dir_entry->next;
-        }
-    }  
 }
 
 /* Fills DIR, the root directory with all the pids of 
@@ -150,17 +399,37 @@ procfs_fill_root_dir(struct procfs_dir *dir, time_t timestamp)
 {
   error_t err;
   char *data;
-
   pid_t *pids;
   int pidslen;
-  int count;
-  char *pid_string;
+  struct stat *stat = (struct stat *) malloc (sizeof (struct stat));
+  stat->st_mode = S_IFDIR;
 
+  int count;
+  char *dir_name_pid;
+  struct node *node;
+  struct procfs_dir *new_dir;
+    
   pids = NULL;
   pidslen = 0;
   err = proc_getallpids (getproc (), &pids, &pidslen);
-  
-  /* STUB */
+
+  if (!err)
+    {
+      for (count = 0; count < pidslen; count++)
+	{
+          if (asprintf (&dir_name_pid, "%d", pids[count]) == -1)
+	    return errno;
+          node = (struct node *) malloc (sizeof (struct node));
+          new_dir = (struct procfs_dir *) malloc (sizeof (struct procfs_dir ));
+
+          if (! node || ! new_dir )
+            return ENOMEM;
+
+          procfs_dir_create (dir->fs, node, dir_name_pid, &new_dir);
+          update_entries_list (dir, dir_name_pid, stat, timestamp, NULL);
+	  free(dir_name_pid);
+	}
+    }
 
   return err;
 }
@@ -175,7 +444,8 @@ error_t update_dir_entries (struct procfs_dir *dir)
    This also creates a valid linked list of entries imposing ordering on
    them. */
 error_t update_entries_list (struct procfs_dir *dir, const char *name,
-                             const struct stat *stat, time_t timestamp)
+                             const struct stat *stat, time_t timestamp,
+                             const char *symlink_target)
 {
   ino_t ino;
   struct procfs_dir_entry *dir_entry = lookup_entry (dir, name, 1);
@@ -232,111 +502,9 @@ error_t update_entries_list (struct procfs_dir *dir, const char *name,
     }
 
   /* Put the next entry after this one. */
-  cur_entry->prev_entry_next_p = &e->ordered_next;
+  cur_entry = &dir_entry->ordered_next;
 
   return 0;
 
 }
 
-/* Lookup NAME in DIR and return its entry.  If there is no such entry, and
-   DNEW, the decision variable, is true, then a new entry is allocated and
-   returned, otherwise 0 is returned (if DNEW is true then 0 can be returned
-   if a memory allocation error occurs).  */
-struct procfs_dir_entry *
-lookup_entry (struct procfs_dir *dir, const char *name, int dnew)
-{
-  size_t hv = hash (name);
-  struct procfs_dir_entry *dir_entry = dir->htable[hv % dir->htable_len];
-
-  while (dir_entry && strcmp (name, dir_entry->name) != 0)
-    dir_entry = dir_entry->next;
-
-  if (!dir_entry && dnew)
-    {
-      if (dir->num_entries > dir->htable_len)
-	/* Grow the hash table.  */
-	if (rehash (dir, (dir->htable_len + 1) * 2 - 1) != 0)
-	  return 0;
-
-      dir_entry = (struct procfs_dir_entry *) malloc (sizeof *struct procfs_dir_entry);
-      if (dir_entry)
-	{
-	  dir_entry->hv = hv;
-	  dir_entry->name = strdup (name);
-	  dir_entry->node = 0;
-	  dir_entry->dir = dir;
-	  dir_entry->stat_timestamp = 0;
-	  bzero (&dir_entry->stat, sizeof dir_entry->stat);
-	  dir_entry->symlink_target = 0;
-	  dir_entry->noent = 0;
-	  dir_entry->valid = 0;
-	  dir_entry->name_timestamp = 0;
-	  dir_entry->ordered_next = 0;
-	  dir_entry->ordered_self_p = 0;
-	  dir_entry->next = 0;
-	  dir_entry->self_p = 0;
-	  insert (dir_entry, dir->htable, dir->htable_len);
-	  dir->num_entries++;
-	}
-    }
-
-  return dir_entry;
-}
-
-/* Calculate NAME's hash value.  */
-static size_t
-hash (const char *name)
-{
-  size_t hash_value = 0;
-  while (*name)
-    hash_value = ((hash_value << 5) + *name++) & 0xFFFFFF;
-  return hash_value;
-}
-
-/* Extend the existing hashtable for DIR to accomodate values for new length
-   NEW_LEN. We retain all the previous entries. */
-static error_t
-rehash (struct procfs_dir *dir, size_t new_len)
-{
-  int count;
-  size_t old_len = dir->htable_len;
-  struct procfs_dir_entry **old_htable = dir->htable;
-  struct procfs_dir_entry **new_htable = (struct procfs_dir_entry **)
-    malloc (new_len * sizeof (struct procfs_dir_entry *));
-
-  if (! new_htable)
-    return ENOMEM;
-
-  bzero (new_htable, new_len * sizeof (struct procfs_dir_entry *));
-
-  for (count = 0; count < old_len; count++)
-    while (old_htable[i])
-      {
-	struct procfs_dir_entry *dir_entry = old_htable[i];
-
-	/* Remove DIR_ENTRY from the old table */
-	old_htable[i] = DIR_ENTRY->next;
-
-	insert (dir_entry, new_htable, new_len);
-      }
-
-  free (old_htable);
-
-  dir->htable = new_htable;
-  dir->htable_len = new_len;
-
-  return 0;
-}
-
-/* Put the directory entry DIR_ENTRY into the hash table HTABLE. */
-static void
-insert (struct procfs_dir_entry *dir_entry,
-	struct procfs_dir_entry **htable, size_t htable_len)
-{
-  struct procfs_dir_entry **new_htable = &htable[e->hv % htable_len];
-  if (*new_htable)
-    (*new_htable)->self_p = &dir_entry->next;
-  dir_entry->next = *new_htable;
-  dir_entry->self_p = new_htable;
-  *new_htable = dir_entry;
-}

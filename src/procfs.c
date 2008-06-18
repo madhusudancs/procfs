@@ -55,16 +55,16 @@ const char *argp_program_version = "/proc pseudo-filesystem (" PROCFS_SERVER_NAM
 "\n";
 
 static char *args_doc = "PROCFSROOT";
-static char *doc = "proc pseudo-filesystem for Hurd implemented as a translator"
+static char *doc = "proc pseudo-filesystem for Hurd implemented as a translator. "
 "This is still under very humble and initial stages of development.\n"
-"Any Contribution or help is welcomed. The code may not even compile";
+"Any Contribution or help is welcome. The code may not even compile";
 
 
 /* The Filesystem */
 struct procfs *procfs;
 
 /* The FILESYSTEM component of PROCFS_FS.  */
-char *procfs_root;
+char *procfs_root = "";
 
 volatile struct mapped_time_value *procfs_maptime;
 
@@ -110,25 +110,26 @@ main (int argc, char **argv)
       NULL, NULL  
     }; 
     
-  procfs_init ();
-    
+   
   /* Parse the command line arguments */
-  argp_parse (&argp, argc, argv, 0, 0, 0);
-    
+//  argp_parse (&argp, argc, argv, 0, 0, 0);
+
   task_get_bootstrap_port (mach_task_self (), &bootstrap);
-    
+
   netfs_init ();
-    
+        
   if (maptime_map (0, 0, &procfs_maptime)) 
     {
       perror (PROCFS_SERVER_NAME ": Cannot map time");
       return 1;
     }
+  
+  procfs_init ();
 
   err = procfs_create (procfs_root, getpid (), &procfs);
   if (err)
     error (4, err, "%s", procfs_root);
-      
+     
   /* Create our root node */
   netfs_root_node = procfs->root;
 
@@ -141,7 +142,8 @@ main (int argc, char **argv)
   netfs_root_node->nn_stat = underlying_stat;
   netfs_root_node->nn_stat.st_mode =
     S_IFDIR | (underlying_stat.st_mode & ~S_IFMT & ~S_ITRANS);
-    
-  netfs_server_loop ();
+  
+  for (;;)  
+    netfs_server_loop ();
   return 1;
 }

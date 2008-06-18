@@ -199,7 +199,7 @@ error_t procfs_dir_create (struct procfs *fs, struct node *node,
 void procfs_dir_remove (struct procfs_dir *dir);
 
 /* Refresh DIR.  */
-error_t procfs_dir_refresh (struct procfs_dir *dir);
+error_t procfs_dir_refresh (struct procfs_dir *dir, int isroot);
 
 /* Lookup NAME in DIR, returning its entry, or an error. 
    *NODE will contain the result node, locked, and with

@@ -36,32 +36,9 @@ static struct ps_context *ps_context;
 error_t procfs_init ()
 {
   error_t err;
-  struct procfs_dir **procfs_root_dir;
-  struct procfs *procfs_root_fs;
-  struct *node;
   
   err = ps_context_create (getproc (), &ps_context);
   
-  procfs_root_fs = (procfs *) malloc (sizeof (procfs));
-  procfs_root_dir = (procfs_dir **) malloc (sizeof (procfs_dir *));
-  
-  if (!procfs_root_fs || !procfs_root_dir)
-    return ENOMEM;
-  
-  procfs_root_fs->root = NULL;
-  procfs_root_fs->next_inode = 0;
-  procfs_root_fs->fsid = 0;
-  
-  if (! err) 
-    {
-      /* Create Root of proc filesystem. */
-      err = procfs_dir_create (procfs_root_fs, node, "", procfs_root_dir);
-      if (! err)
-         /* Create all the directories of name PID 
-            for procfs root. */
-         err = procfs_dir_refresh (*procfs_root_dir);
-    }
-   
   return err; 
 }
 
@@ -73,7 +50,7 @@ error_t procfs_create (char *procfs_root, int fsid,
   /* This is the enclosing directory for this filesystem's
      root node  */
   struct procfs_dir *topmost_root_dir;
-  
+ 
   /* And also a topmost-root node, just used for locking
      TOPMOST_ROOT_DIR.  */
   struct node *topmost_root;
@@ -100,8 +77,8 @@ error_t procfs_create (char *procfs_root, int fsid,
                                &topmost_root_dir);
       if (! err)
         {
-          /* ADDITIONAL BOOTSTRAPPING OF THE ROOT NODE MAYBE REQUIRED
-	     LEFT AS A STUB  */
+          /* ADDITIONAL BOOTSTRAPPING OF THE ROOT NODE */
+	  err = procfs_dir_null_lookup (topmost_root_dir, &new->root);   
         }
     }
 
@@ -115,5 +92,4 @@ error_t procfs_create (char *procfs_root, int fsid,
 
   return err;
 }
-
 

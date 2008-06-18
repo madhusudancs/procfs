@@ -23,9 +23,12 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <string.h>
 
-#include <hurd/netfs.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
+#include <hurd/netfs.h>
 
 #include "procfs.h"
 
@@ -175,31 +178,32 @@ netfs_get_dirents (struct iouser *cred, struct node *dir,
 {
   error_t err = procfs_refresh_node (dir);
   struct procfs_dir_entry *dir_entry;
-  
+
   if (! err)
     {
       if (dir->nn->dir) 
         {
-          if (! procfs_dir_refresh (dir->nn->dir))
+          if (! procfs_dir_refresh (dir->nn->dir, dir == dir->nn->fs->root))
             {
               for (dir_entry = dir->nn->dir->ordered; first_entry > 0 &&
                   dir_entry; first_entry--,
                   dir_entry = dir_entry->ordered_next);
               if (! dir_entry )
                 max_entries = 0;
-                 
+                
               if (max_entries != 0)
                 {  
                   size_t size = 0;
                   char *p;
                   int count = 0;
-              
-                  if (max_len == 0) 
+
+             
+                  if (max_data_len == 0) 
                     size = DIRENTS_CHUNK_SIZE;
-                  else if (max_len > DIRENTS_CHUNK_SIZE)
+                  else if (max_data_len > DIRENTS_CHUNK_SIZE)
                     size = DIRENTS_CHUNK_SIZE;
                   else 
-                    size = max_len;  
+                    size = max_data_len;  
                 
                   *data = mmap (0, size, PROT_READ|PROT_WRITE,
 		            MAP_ANON, 0, 0);
@@ -211,6 +215,7 @@ netfs_get_dirents (struct iouser *cred, struct node *dir,
 	              p = *data;
 	           
 	              /* This gets all the actual entries present.  */
+
                       while ((max_entries == -1 || count < max_entries) && dir_entry)
                         {
                           struct dirent hdr;
@@ -242,6 +247,7 @@ netfs_get_dirents (struct iouser *cred, struct node *dir,
 
 	                  memcpy (p, &hdr, DIRENT_NAME_OFFS);
 	                  strcpy (p + DIRENT_NAME_OFFS, dir_entry->name);
+
 	                  p += sz;
 
                           count++;
@@ -271,6 +277,7 @@ netfs_get_dirents (struct iouser *cred, struct node *dir,
       else
         return ENOTDIR;          
     }          
+
   return err;
 }		 
 
@@ -283,9 +290,8 @@ error_t netfs_attempt_lookup (struct iouser *user, struct node *dir,
 {
   error_t err = procfs_refresh_node (dir);
 
-
-             /* STUB */
-
+  if (! err)
+    err = procfs_dir_lookup (dir->nn->dir, name, node);
 
   return err;
 }

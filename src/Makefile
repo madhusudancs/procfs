@@ -24,11 +24,12 @@ target = procfs
 CC = gcc
 CFLAGS = -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 INCLUDES = -I.
-SRCS = netfs.c procfs.c node.c bootstrap.c procfs_dir.c
+
+SRCS = procfs.c bootstrap.c netfs.c procfs_dir.c node.c
 LCLHDRS = procfs.h
 
-OBJS = $(SRCS:.c = .o)
-HURDLIBS = -lnetfs -lfshelp -liohelp -lports
+OBJS = $(SRCS:.c=.o)
+HURDLIBS = -lnetfs -lfshelp -liohelp -lthreads -lports -lihash -lps -lshouldbeinlibc
 
 all: $(target)
 

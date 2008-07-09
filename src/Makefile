@@ -25,8 +25,8 @@ CC = gcc
 CFLAGS = -Wall -g -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 INCLUDES = -I.
 
-SRCS = procfs.c bootstrap.c netfs.c procfs_dir.c node.c
-LCLHDRS = procfs.h
+SRCS = procfs.c bootstrap.c netfs.c procfs_dir.c node.c procfs_pid_files.c
+LCLHDRS = procfs.h procfs_pid.h
 
 OBJS = $(SRCS:.c=.o)
 HURDLIBS = -lnetfs -lfshelp -liohelp -lthreads -lports -lihash -lps -lshouldbeinlibc

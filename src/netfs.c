@@ -222,7 +222,7 @@ netfs_get_dirents (struct iouser *cred, struct node *dir,
                           size_t name_len = strlen (dir_entry->name);
                           size_t sz = DIRENT_LEN (name_len);
                           int entry_type = IFTODT (dir_entry->stat.st_mode);
-                   
+
                           if ((p - *data) + sz > size)
        		            {
 		              if (max_data_len > 0)
@@ -276,8 +276,8 @@ netfs_get_dirents (struct iouser *cred, struct node *dir,
         }
       else
         return ENOTDIR;          
-    }          
-
+    }      
+    
   return err;
 }		 
 
@@ -376,6 +376,7 @@ error_t
 netfs_attempt_statfs (struct iouser *cred, struct node *node,
 		      struct statfs *st)
 {
+  bzero (st, sizeof *st);
   st->f_type = PROCFILESYSTEM;
   st->f_fsid = getpid ();
   return 0;
@@ -410,10 +411,16 @@ error_t netfs_attempt_mkfile (struct iouser *user, struct node *dir,
 /* Read the contents of NODE (a symlink), for USER, into BUF. */
 error_t netfs_attempt_readlink (struct iouser *user, struct node *node, char *buf)
 {
-
-   /* STUB */
-   
-  return EINVAL;
+  error_t err = procfs_refresh_node (node);
+  if (! err)
+    {
+      struct procfs_dir_entry *dir_entry = node->nn->dir_entry;
+      if (dir_entry)
+	bcopy (dir_entry->symlink_target, buf, node->nn_stat.st_size);
+      else
+	err = EINVAL;
+    }
+  return err;
 }
 
 /* Read from the file NODE for user CRED starting at OFFSET and continuing for
@@ -423,8 +430,17 @@ error_t netfs_attempt_read (struct iouser *cred, struct node *node,
 			    off_t offset, size_t *len, void *data)
 {
   error_t err = 0;
+  err = procfs_refresh_node (node);
 
-                 /* STUB */
+  if (! err)
+    {
+      if (*len > node->nn_stat.st_size - offset)
+	*len = node->nn_stat.st_size - offset;
+      if (*len > 0)
+        {
+          /* DO SOMETHING HERE STUB. */
+        }
+    }
 
   return err;
 }
@@ -437,8 +453,6 @@ error_t netfs_attempt_write (struct iouser *cred, struct node *node,
 {
   return EROFS;
 }
-
-
 
 /* The user must define this function.  Node NP is all done; free
    all its associated storage. */

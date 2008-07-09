@@ -72,7 +72,7 @@ error_t procfs_create_node (struct procfs_dir_entry *dir_entry,
       free (new);
       return err;
     }
-
+ 
   dir_entry->node = new;
   *node = new;
 
@@ -142,27 +142,31 @@ error_t procfs_refresh_node (struct node *node)
       if (! dir_entry->self_p)
 	/* This is a deleted entry, just awaiting disposal; do so.  */
 	{
-/*	  nn->dir_entry = 0;
+#if 0
+	  nn->dir_entry = 0;
 	  free_entry (dir_entry);
 	  return 0;
-*/
+#endif
 	}
-
+      
       else if (dir_entry->noent)
 	err = ENOENT;
       else 
         {
-          err =  procfs_dir_refresh (dir_entry->dir, 
-          dir_entry->dir->node == dir_entry->dir->fs->root);
-	  if (!err && dir_entry->noent)
-	    err = ENOENT;
+          if (*(dir_entry->name))
+            {
+              err =  procfs_dir_refresh (dir_entry->dir, 
+              dir_entry->dir->node == dir_entry->dir->fs->root);
+	      if (!err && dir_entry->noent)
+	        err = ENOENT;
 
-  	  if (err == ENOENT)
-	    {
-	      dir_entry->noent = 1; /* A negative entry.  */
-	      dir_entry->name_timestamp = timestamp;
-	    }
-         else
+              if (err == ENOENT)
+	        {
+	          dir_entry->noent = 1; /* A negative entry.  */
+	          dir_entry->name_timestamp = timestamp;
+	        }
+            }
+          else
 	    {
 	      /* Refresh the root node with the old stat
                  information.  */             

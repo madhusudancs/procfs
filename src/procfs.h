@@ -41,6 +41,8 @@
 /* /proc Filesystem type. */
 #define PROCFILESYSTEM "procfs"
 
+#define NUMBER_OF_FILES_PER_PID 1
+
 #include <stdlib.h>
 #include <cthreads.h>
 #include <maptime.h>

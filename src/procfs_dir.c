@@ -192,7 +192,7 @@ lookup_entry (struct procfs_dir *dir, const char *name, int dnew)
 error_t procfs_dir_lookup (struct procfs_dir *dir, const char *name,
 			  struct node **node)
 {
-  struct procfs_dir_entry *dir_entry;
+  struct procfs_dir_entry *dir_entry = 0;
   error_t err = 0;
   char *fs_path = dir->fs_path;
   
@@ -200,7 +200,7 @@ error_t procfs_dir_lookup (struct procfs_dir *dir, const char *name,
   maptime_read (procfs_maptime, &tv); 
   
   time_t timestamp = tv.tv_sec;
-    
+ 
   if (*name == '\0' || strcmp (name, ".") == 0)
     /* Current directory -- just add an additional reference to DIR's node
        and return it.  */
@@ -232,7 +232,7 @@ error_t procfs_dir_lookup (struct procfs_dir *dir, const char *name,
   err =  procfs_dir_refresh (dir, dir->node == dir->fs->root);
   if (!err && !dir_entry)
     dir_entry = lookup_entry (dir, name, 0);
-    
+   
   if (! err)
     {
       if (dir_entry && !dir_entry->noent)
@@ -287,11 +287,12 @@ error_t procfs_dir_lookup (struct procfs_dir *dir, const char *name,
       mutex_unlock (&dir->node->lock);
     }
 
+#if 0
   if (fs_path)
     free (fs_path);
+#endif
 
   return err;
-  return 0;
 }
 
 /* Lookup the null name in DIR, and return a node for it in NODE.  Unlike
@@ -372,11 +373,50 @@ make_dir_invalid (struct procfs_dir *dir)
     }  
 }
 
+/* Checks if the DIR name is in list of 
+   Active pids. */
+int is_in_pid_list (struct procfs_dir *dir)
+{
+  int dir_name;
+  int count;
+  pid_t *pids = NULL;
+  int pidslen = 0;
+  error_t err;
+
+  if (dir->node->nn)
+    {
+      dir_name = atoi (dir->node->nn->dir_entry->name);
+      err = proc_getallpids (getproc (), &pids, &pidslen);
+
+      for (count = 0; count < pidslen; ++count)
+        if (pids[count] == dir_name)
+          return 1;
+    }
+
+  return 0;
+
+}
+
+/* Checks if DIR is a directory that
+   represents a pid. */
+int check_parent (struct procfs_dir *dir)
+{
+  if (dir == dir->fs->root)
+    return 0;
+  else
+    if (is_in_pid_list (dir))
+      return 1;
+    else
+      return 0;
+
+}
+
 /* Refresh DIR.  */
 error_t procfs_dir_refresh (struct procfs_dir *dir, int isroot)
 {
   error_t err;
-  
+  int is_parent_pid;
+  struct node *node;
   make_dir_invalid (dir);
   
   struct timeval tv;
@@ -387,63 +427,21 @@ error_t procfs_dir_refresh (struct procfs_dir *dir, int isroot)
   if (isroot)
     err = procfs_fill_root_dir(dir, timestamp);
   else
-    err = update_dir_entries (dir, timestamp);
-     
-  return err;
-}
-
-/* Fills DIR, the root directory with all the pids of 
-   processes running in the system as directories. */
-error_t 
-procfs_fill_root_dir(struct procfs_dir *dir, time_t timestamp)
-{
-  error_t err;
-  char *data;
-  pid_t *pids;
-  int pidslen;
-  struct stat *stat = (struct stat *) malloc (sizeof (struct stat));
-  stat->st_mode = S_IFDIR;
-
-  int count;
-  char *dir_name_pid;
-  struct node *node;
-  struct procfs_dir *new_dir;
-    
-  pids = NULL;
-  pidslen = 0;
-  err = proc_getallpids (getproc (), &pids, &pidslen);
-
-  if (!err)
     {
-      for (count = 0; count < pidslen; count++)
-	{
-          if (asprintf (&dir_name_pid, "%d", pids[count]) == -1)
-	    return errno;
-          node = (struct node *) malloc (sizeof (struct node));
-          new_dir = (struct procfs_dir *) malloc (sizeof (struct procfs_dir ));
-
-          if (! node || ! new_dir )
-            return ENOMEM;
-
-          procfs_dir_create (dir->fs, node, dir_name_pid, &new_dir);
-          update_entries_list (dir, dir_name_pid, stat, timestamp, NULL);
-	  free(dir_name_pid);
-	}
+      err = update_dir_entries (dir, timestamp);
+      is_parent_pid = check_parent (dir);
+      if (is_parent_pid)
+          err = procfs_create_files (dir, &node, timestamp);    
     }
 
   return err;
 }
 
-error_t update_dir_entries (struct procfs_dir *dir)
-{
-  /* STUB */
-  return 0;
-}
-
 /* Update the directory entry for NAME to reflect STAT and SYMLINK_TARGET. 
    This also creates a valid linked list of entries imposing ordering on
    them. */
-error_t update_entries_list (struct procfs_dir *dir, const char *name,
+struct procfs_dir_entry*
+update_entries_list (struct procfs_dir *dir, const char *name,
                              const struct stat *stat, time_t timestamp,
                              const char *symlink_target)
 {
@@ -481,7 +479,6 @@ error_t update_entries_list (struct procfs_dir *dir, const char *name,
   dir_entry->stat.st_fsid = fs->fsid;
   dir_entry->stat.st_fstype = PROCFILESYSTEM;
  
- 
   dir_entry->valid = 1;
 
   if (! dir_entry->ordered_self_p)
@@ -504,7 +501,60 @@ error_t update_entries_list (struct procfs_dir *dir, const char *name,
   /* Put the next entry after this one. */
   cur_entry = &dir_entry->ordered_next;
 
-  return 0;
-
+  return dir_entry;
 }
 
+/* Fills DIR, the root directory with all the pids of 
+   processes running in the system as directories. */
+error_t 
+procfs_fill_root_dir(struct procfs_dir *dir, time_t timestamp)
+{
+  error_t err;
+  char *data;
+  pid_t *pids;
+  int pidslen;
+  struct stat *stat = (struct stat *) malloc (sizeof (struct stat));
+  stat->st_mode = S_IFDIR;
+
+  int count;
+  char *dir_name_pid;
+  struct node *node;
+  struct procfs_dir *new_dir;
+  struct procfs_dir_entry *dir_entry;
+    
+  pids = NULL;
+  pidslen = 0;
+  err = proc_getallpids (getproc (), &pids, &pidslen);
+
+  if (!err)
+    {
+      for (count = 0; count < pidslen; count++)
+	{
+          if (asprintf (&dir_name_pid, "%d", pids[count]) == -1)
+	    return errno;
+
+#if 0
+          node = (struct node *) malloc (sizeof (struct node));
+          new_dir = (struct procfs_dir *) malloc (sizeof (struct procfs_dir ));
+
+          if (! node || ! new_dir )
+           return ENOMEM;
+#endif
+          dir_entry = update_entries_list (dir, dir_name_pid,
+                                 stat, timestamp, NULL);
+          err = procfs_create_node (dir_entry, dir_name_pid, &node);
+
+          procfs_dir_create (dir->fs, node, 
+                                 dir_name_pid, &new_dir);
+          free(dir_name_pid);
+	}
+    }
+
+  return err;
+}
+
+error_t update_dir_entries (struct procfs_dir *dir)
+{
+  /* STUB */
+  return 0;
+}

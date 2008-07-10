@@ -429,17 +429,17 @@ error_t netfs_attempt_readlink (struct iouser *user, struct node *node, char *bu
 error_t netfs_attempt_read (struct iouser *cred, struct node *node,
 			    off_t offset, size_t *len, void *data)
 {
-  error_t err = 0;
+  error_t err;
   err = procfs_refresh_node (node);
 
   if (! err)
     {
-      if (*len > node->nn_stat.st_size - offset)
-	*len = node->nn_stat.st_size - offset;
       if (*len > 0)
-        {
-          /* DO SOMETHING HERE STUB. */
-        }
+        procfs_write_files_contents (node, offset,
+                                    len, data);
+      if (*len > 0)
+        if (offset >= *len)
+          *len = 0;
     }
 
   return err;

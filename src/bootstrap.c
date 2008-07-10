@@ -29,7 +29,7 @@
 
 #include "procfs.h"
 
-static struct ps_context *ps_context;
+struct ps_context *ps_context;
 
 /* This function is used to initialize the whole translator, can be
    effect called as bootstrapping the translator. */

@@ -171,6 +171,8 @@ extern struct procfs *procfs;
 
 extern volatile struct mapped_time_value *procfs_maptime;
 
+extern struct ps_context *ps_context;
+
 /* Create a new procfs filesystem.  */
 error_t procfs_create (char *procfs_root, int fsid,
                        struct procfs **fs);

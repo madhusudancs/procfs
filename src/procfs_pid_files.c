@@ -109,6 +109,19 @@ error_t set_field_value (struct proc_stat *ps, int pstat_flag)
   return 0;
 }
 
+/* Adjusts TIME_VAL structure having Seconds and
+   Microseconds into the value in jiffies. The
+   value of jiffy is a hack to adjust to what
+   procps uses. */
+time_t adjust_jiffy_time (time_value_t time_val)
+{
+  time_t jiffy_time = time_val.seconds * JIFFY_ADJUST;
+  jiffy_time += (time_val.microseconds * JIFFY_ADJUST) 
+                 / (1000 * 1000);
+
+  return jiffy_time;
+}
+
 /* Get the data for stat file into the structure
    PROCFS_STAT. */
 error_t get_stat_data (pid_t pid, 
@@ -193,13 +206,48 @@ error_t get_stat_data (pid_t pid,
       new->majflt = 0;
     }
 
+  err = set_field_value (ps, PSTAT_TASK_BASIC);
+  if (! err)
+    {
+      new->utime = adjust_jiffy_time (
+           ps->task_basic_info->user_time);
+      new->stime = adjust_jiffy_time (
+           ps->task_basic_info->system_time);
+
+      new->priority = ps->task_basic_info->base_priority;
+      new->starttime = adjust_jiffy_time ( 
+          ps->task_basic_info->creation_time);
+              
+      new->vsize = PAGES_TO_BYTES (ps->task_basic_info->virtual_size);
+      new->rss = PAGES_TO_BYTES (ps->task_basic_info->resident_size);
+    }   
+  else
+    {
+      new->utime = 0;
+      new->stime = 0;
+      new->priority = 0;
+      new->starttime = 0; 
+      new->vsize = 0;
+      new->rss = 0;
+    }
+
+  err = set_field_value (ps, PSTAT_NUM_THREADS);
+  if (! err)
+    new->num_threads = ps->num_threads;
+  else
+    new->num_threads = 0;
+    
   /* Not Supported in Linux 2.6 or later. */
   new->tty_nr = 0;
+  new->itrealvalue = 0;
       
   /* Temporarily set to 0 until correct 
      values are found .*/
   new->cminflt = 0;
   new->cmajflt = 0;
+  new->cutime = 0;
+  new->cstime = 0;       
+  new->nice = 0;  
   
   *procfs_stat = new;
   _proc_stat_free (ps);
@@ -222,14 +270,19 @@ procfs_write_stat_file (struct procfs_dir_entry *dir_entry,
 
   err = get_stat_data (pid, &procfs_stat);
   
-  if (asprintf (&stat_data, "%d %s %s %d %d %d %d %d %u %lu %lu %lu %lu \n", 
+  if (asprintf (&stat_data, "%d %s %s %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld \n", 
            procfs_stat->pid, procfs_stat->comm, 
            procfs_stat->state, procfs_stat->ppid,
            procfs_stat->pgid, procfs_stat->sid,
            procfs_stat->tty_nr, procfs_stat->tty_pgrp, 
            procfs_stat->flags, procfs_stat->minflt,
            procfs_stat->cminflt, procfs_stat->majflt,
-           procfs_stat->cmajflt) == -1)
+           procfs_stat->cmajflt, procfs_stat->utime,
+           procfs_stat->stime, procfs_stat->cutime,
+           procfs_stat->cstime, procfs_stat->priority, 
+           procfs_stat->nice, procfs_stat->num_threads, 
+           procfs_stat->itrealvalue, procfs_stat->starttime, 
+           procfs_stat->vsize, procfs_stat->rss) == -1)
     return errno;
 
 
@@ -254,7 +307,7 @@ procfs_write_files_contents (struct node *node,
 
   if (! strcmp (node->nn->dir_entry->name, "stat"))
     err = procfs_write_stat_file (node->nn->dir_entry, 
-                                      offset, len, data);
+                                     offset, len, data);
 
   return err;
 }

@@ -129,46 +129,50 @@ error_t get_stat_data (pid_t pid,
       if (! err)
         asprintf (&new->comm, "(%s)", ps->args);
     }
+
+  err = set_field_value (ps, PSTAT_STATE);
   if (! err)
     {
-      err = set_field_value (ps, PSTAT_STATE);
-      if (! err)
-        {
-          if (ps->state & PSTAT_STATE_P_STOP) 
-            new->state = strdup ("T");
-          if (ps->state & PSTAT_STATE_P_ZOMBIE)
-            new->state = strdup ("Z");
-          if (ps->state & PSTAT_STATE_P_FG)
-            new->state = strdup ("+");
-          if (ps->state & PSTAT_STATE_P_SESSLDR)
-            new->state = strdup ("s");
-          if (ps->state & PSTAT_STATE_P_LOGINLDR)
-            new->state = strdup ("l");
-          if (ps->state & PSTAT_STATE_P_FORKED)
-            new->state = strdup ("f");
-          if (ps->state & PSTAT_STATE_P_NOMSG)
-            new->state = strdup ("m");
-          if (ps->state & PSTAT_STATE_P_NOPARENT)
-            new->state = strdup ("p");
-          if (ps->state & PSTAT_STATE_P_ORPHAN)
-            new->state = strdup ("o");
-          if (ps->state & PSTAT_STATE_P_TRACE)
-            new->state = strdup ("x");
-          if (ps->state & PSTAT_STATE_P_WAIT)
-            new->state = strdup ("w");
-          if (ps->state & PSTAT_STATE_P_GETMSG)
-            new->state = strdup ("g");     
-        }
+      if (ps->state & PSTAT_STATE_P_STOP) 
+        new->state = strdup ("T");
+      if (ps->state & PSTAT_STATE_P_ZOMBIE)
+        new->state = strdup ("Z");
+      if (ps->state & PSTAT_STATE_P_FG)
+        new->state = strdup ("+");
+      if (ps->state & PSTAT_STATE_P_SESSLDR)
+        new->state = strdup ("s");
+      if (ps->state & PSTAT_STATE_P_LOGINLDR)
+        new->state = strdup ("l");
+      if (ps->state & PSTAT_STATE_P_FORKED)
+        new->state = strdup ("f");
+      if (ps->state & PSTAT_STATE_P_NOMSG)
+        new->state = strdup ("m");
+      if (ps->state & PSTAT_STATE_P_NOPARENT)
+        new->state = strdup ("p");
+      if (ps->state & PSTAT_STATE_P_ORPHAN)
+        new->state = strdup ("o");
+      if (ps->state & PSTAT_STATE_P_TRACE)
+        new->state = strdup ("x");
+      if (ps->state & PSTAT_STATE_P_WAIT)
+        new->state = strdup ("w");
+      if (ps->state & PSTAT_STATE_P_GETMSG)
+        new->state = strdup ("g");     
     }
+
+  err = set_field_value (ps, PSTAT_PROC_INFO);
   if (! err)
     {
-      err = set_field_value (ps, PSTAT_PROC_INFO);
-      if (! err)
-        {
-          new->ppid = ps->proc_info->ppid;
-          new->pgid = ps->proc_info->pgrp;
-          new->sid = ps->proc_info->session;
-        }
+      new->ppid = ps->proc_info->ppid;
+      new->pgid = ps->proc_info->pgrp;
+      new->sid = ps->proc_info->session;
+      new->tty_pgrp = ps->proc_info->pgrp;
+    }
+  else
+    {
+      new->ppid = 0;
+      new->pgid = 0;
+      new->sid = 0;
+      new->tty_pgrp = 0;
     }
 
   *procfs_stat = new;
@@ -197,6 +201,7 @@ procfs_write_stat_file (struct procfs_dir_entry *dir_entry,
                    procfs_stat->ppid, procfs_stat->pgid,
                    procfs_stat->sid) == -1)
     return errno;
+
 
   memcpy (data, stat_data, strlen(stat_data));
   *len = strlen (data);

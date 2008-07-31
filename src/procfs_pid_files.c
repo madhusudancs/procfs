@@ -175,6 +175,32 @@ error_t get_stat_data (pid_t pid,
       new->tty_pgrp = 0;
     }
 
+  err = set_field_value (ps, PSTAT_STATE);
+  if (! err)
+    new->flags = ps->state;
+  else
+    new->flags = 0;
+
+  err = set_field_value (ps, PSTAT_TASK_EVENTS);
+  if (! err)
+    {
+      new->minflt = ps->task_events_info->faults;
+      new->majflt = ps->task_events_info->pageins;
+    }
+  else 
+    {
+      new->minflt = 0;
+      new->majflt = 0;
+    }
+
+  /* Not Supported in Linux 2.6 or later. */
+  new->tty_nr = 0;
+      
+  /* Temporarily set to 0 until correct 
+     values are found .*/
+  new->cminflt = 0;
+  new->cmajflt = 0;
+  
   *procfs_stat = new;
   _proc_stat_free (ps);
 
@@ -196,10 +222,14 @@ procfs_write_stat_file (struct procfs_dir_entry *dir_entry,
 
   err = get_stat_data (pid, &procfs_stat);
   
-  if (asprintf (&stat_data, "%d %s %s %d %d %d\n", procfs_stat->pid,
-                   procfs_stat->comm, procfs_stat->state,
-                   procfs_stat->ppid, procfs_stat->pgid,
-                   procfs_stat->sid) == -1)
+  if (asprintf (&stat_data, "%d %s %s %d %d %d %d %d %u %lu %lu %lu %lu \n", 
+           procfs_stat->pid, procfs_stat->comm, 
+           procfs_stat->state, procfs_stat->ppid,
+           procfs_stat->pgid, procfs_stat->sid,
+           procfs_stat->tty_nr, procfs_stat->tty_pgrp, 
+           procfs_stat->flags, procfs_stat->minflt,
+           procfs_stat->cminflt, procfs_stat->majflt,
+           procfs_stat->cmajflt) == -1)
     return errno;
 
 

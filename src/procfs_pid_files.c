@@ -240,6 +240,8 @@ error_t get_stat_data (pid_t pid,
   /* Not Supported in Linux 2.6 or later. */
   new->tty_nr = 0;
   new->itrealvalue = 0;
+  new->nswap = 0;
+  new->cnswap = 0;
       
   /* Temporarily set to 0 until correct 
      values are found .*/
@@ -248,6 +250,22 @@ error_t get_stat_data (pid_t pid,
   new->cutime = 0;
   new->cstime = 0;       
   new->nice = 0;  
+  new->rlim = 0;
+  new->startcode = 0;
+  new->endcode = 0;
+  new->startstack = 0;
+  new->kstkesp = 0;
+  new->kstkeip = 0;
+  new->signal = 0;
+  new->blocked = 0;
+  new->sigignore = 0;
+  new->sigcatch = 0; 
+  new->wchan = 0;
+  new->exit_signal = 0;
+  new->processor = 0;
+  new->rt_priority = 0; 
+  new->policy = 0; 
+  new->delayacct_blkio_ticks = 0;
   
   *procfs_stat = new;
   _proc_stat_free (ps);
@@ -270,7 +288,7 @@ procfs_write_stat_file (struct procfs_dir_entry *dir_entry,
 
   err = get_stat_data (pid, &procfs_stat);
   
-  if (asprintf (&stat_data, "%d %s %s %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld \n", 
+  if (asprintf (&stat_data, "%d %s %s %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %d %d %u %u %llu \n", 
            procfs_stat->pid, procfs_stat->comm, 
            procfs_stat->state, procfs_stat->ppid,
            procfs_stat->pgid, procfs_stat->sid,
@@ -282,7 +300,17 @@ procfs_write_stat_file (struct procfs_dir_entry *dir_entry,
            procfs_stat->cstime, procfs_stat->priority, 
            procfs_stat->nice, procfs_stat->num_threads, 
            procfs_stat->itrealvalue, procfs_stat->starttime, 
-           procfs_stat->vsize, procfs_stat->rss) == -1)
+           procfs_stat->vsize, procfs_stat->rss, 
+           procfs_stat->rlim, procfs_stat->startcode,
+           procfs_stat->endcode, procfs_stat->startstack, 
+           procfs_stat->kstkesp, procfs_stat->kstkeip, 
+           procfs_stat->signal, procfs_stat->blocked, 
+           procfs_stat->sigignore, procfs_stat->sigcatch, 
+           procfs_stat->wchan, procfs_stat->nswap, 
+           procfs_stat->cnswap, procfs_stat->exit_signal, 
+           procfs_stat->processor, procfs_stat->rt_priority, 
+           procfs_stat->policy, 
+           procfs_stat->delayacct_blkio_ticks) == -1)
     return errno;
 
 

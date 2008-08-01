@@ -345,6 +345,67 @@ procfs_write_stat_file (struct procfs_dir_entry *dir_entry,
   return err;  
 }
 
+/* Writes required process's command line information
+   to cmline file within the directory represented by
+   pid. Return the data in DATA and actual length to
+   be written in LEN. */
+error_t
+procfs_write_cmdline_file (struct procfs_dir_entry *dir_entry, 
+                        off_t offset, size_t *len, void *data)
+{	
+  char *cmdline_data;
+  error_t err;
+  struct proc_stat *ps;
+  pid_t pid = atoi (dir_entry->dir->node->nn->dir_entry->name);
+  err = _proc_stat_create (pid, ps_context, &ps);
+
+  err = set_field_value (ps, PSTAT_ARGS);
+
+  if (! err)
+    if (asprintf (&cmdline_data, "%s \n", ps->args) == -1)
+      return errno;
+
+  memcpy (data, cmdline_data, strlen(cmdline_data));
+  *len = strlen (data);
+
+  _proc_stat_free (ps); 
+  free (cmdline_data);
+  return err;
+}
+
+/* Writes required process's information that is represented by
+   stat and statm in a human readable format to status file
+   within the directory represented by pid. Return the data
+   in DATA and actual length to be written in LEN. */
+error_t
+procfs_write_status_file (struct procfs_dir_entry *dir_entry, 
+                        off_t offset, size_t *len, void *data)
+{	
+  char *status_data;
+  error_t err;
+  struct proc_stat *ps;
+  struct procfs_stat *procfs_stat;
+
+  pid_t pid = atoi (dir_entry->dir->node->nn->dir_entry->name);
+  err = _proc_stat_create (pid, ps_context, &ps);
+
+  err = get_stat_data (pid, &procfs_stat);
+
+  if (! err)
+    if (asprintf (&status_data, "Name:\t%s\nState:\t%s\nTgid:\t%d\nPid:\t%d\n", procfs_stat->comm, procfs_stat->state, procfs_stat->pid, procfs_stat->pid) == -1)
+      return errno;
+
+  memcpy (data, status_data, strlen(status_data));
+  *len = strlen (data);
+
+  _proc_stat_free (ps); 
+
+  free (status_data);
+  free (procfs_stat);
+
+  return err;
+}
+
 /* Writes required process information to each of files
    within directory represented by pid, for files specified
    by NODE. Return the data in DATA and actual length of 
@@ -363,5 +424,13 @@ procfs_write_files_contents (struct node *node,
       err = procfs_write_stat_file (node->nn->dir_entry, 
                                      offset, len, data);
 
+  if (! strcmp (node->nn->dir_entry->name, "cmdline"))
+      err = procfs_write_cmdline_file (node->nn->dir_entry, 
+                                     offset, len, data);
+
+  if (! strcmp (node->nn->dir_entry->name, "status"))
+      err = procfs_write_status_file (node->nn->dir_entry, 
+                                     offset, len, data);
+    
   return err;
 }

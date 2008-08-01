@@ -140,7 +140,7 @@ error_t get_stat_data (pid_t pid,
     {
       err = set_field_value (ps, PSTAT_ARGS);
       if (! err)
-        asprintf (&new->comm, "(%s)", ps->args);
+        asprintf (&new->comm, "%s", ps->args);
     }
 
   err = set_field_value (ps, PSTAT_STATE);
@@ -288,7 +288,7 @@ procfs_write_stat_file (struct procfs_dir_entry *dir_entry,
 
   err = get_stat_data (pid, &procfs_stat);
   
-  if (asprintf (&stat_data, "%d %s %s %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %d %d %u %u %llu \n", 
+  if (asprintf (&stat_data, "%d (%s) %s %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %d %d %u %u %llu \n", 
            procfs_stat->pid, procfs_stat->comm, 
            procfs_stat->state, procfs_stat->ppid,
            procfs_stat->pgid, procfs_stat->sid,

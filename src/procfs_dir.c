@@ -550,7 +550,16 @@ procfs_fill_root_dir(struct procfs_dir *dir, time_t timestamp)
 	}
     }
 
-  return err;
+  if ((err = procfs_create_uptime (dir, &node, timestamp)) != 0)
+    return err;
+
+  if ((err = procfs_create_stat (dir, &node, timestamp)) != 0)
+    return err;
+  
+  if ((err = procfs_create_version (dir, &node, timestamp)) != 0)
+    return err;
+
+  return 0;
 }
 
 error_t update_dir_entries (struct procfs_dir *dir)

@@ -332,9 +332,13 @@ procfs_write_files_contents (struct node *node,
                  off_t offset, size_t *len, void *data)
 {
   error_t err;
-
+  
   if (! strcmp (node->nn->dir_entry->name, "stat"))
-    err = procfs_write_stat_file (node->nn->dir_entry, 
+    if (! strcmp (node->nn->dir_entry->dir->fs_path, ""))
+      err = procfs_write_nonpid_stat (node->nn->dir_entry,
+                                      offset, len, data);
+    else 
+      err = procfs_write_stat_file (node->nn->dir_entry, 
                                      offset, len, data);
 
   return err;

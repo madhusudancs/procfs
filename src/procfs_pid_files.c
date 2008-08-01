@@ -77,6 +77,28 @@ procfs_create_files (struct procfs_dir *dir,
   free (file_name);
   free (file_path);
 
+  if (asprintf (&file_name, "%s", "status") == -1)
+    return errno;
+  if (asprintf (&file_path, "%s/%s", dir->node->nn->dir_entry->name, "status") == -1)
+    return errno;
+    
+  dir_entry = update_pid_entries (dir, file_name, timestamp, NULL);
+  err = procfs_create_node (dir_entry, file_path, node);
+
+  free (file_name);
+  free (file_path);
+
+  if (asprintf (&file_name, "%s", "cmdline") == -1)
+    return errno;
+  if (asprintf (&file_path, "%s/%s", dir->node->nn->dir_entry->name, "cmdline") == -1)
+    return errno;
+    
+  dir_entry = update_pid_entries (dir, file_name, timestamp, NULL);
+  err = procfs_create_node (dir_entry, file_path, node);
+
+  free (file_name);
+  free (file_path);
+
 #if 0
   nodes_list = &node_stat; 
   nodes_list++;

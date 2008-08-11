@@ -424,7 +424,7 @@ error_t procfs_write_nonpid_uptime (struct dir_entry *dir_entry,
   error_t err;
   double uptime_secs;
   
-  get_uptime (&uptime_secs);
+  err = get_uptime (&uptime_secs);
   
   if (! err)
     if (asprintf (&uptime_data, "%.2f %.2f \n", 

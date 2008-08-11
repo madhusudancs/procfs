@@ -166,6 +166,36 @@ error_t procfs_create_loadavg (struct procfs_dir *dir,
   return err;
 }
 
+error_t get_uptime (double *uptime_secs)
+{
+  struct timeval boot_time, uptime, now;
+  error_t err;
+  struct proc_stat *ps;
+  
+  err = _proc_stat_create (1, ps_context, &ps);
+  
+  if (err)
+    return err;
+    
+  err = proc_stat_set_flags (ps, PSTAT_TASK_BASIC);
+  if (!err && !(ps->flags & PSTAT_TASK_BASIC))
+    err = EGRATUITOUS;
+  
+  if (! err)
+    {
+      time_value_t *const tv = &proc_stat_task_basic_info (ps)->creation_time;
+      boot_time.tv_sec = tv->seconds;
+      boot_time.tv_usec = tv->microseconds;
+      if (gettimeofday (&now, 0) < 0)
+        error (0, errno, "gettimeofday");
+      timersub (&now, &boot_time, &uptime);
+      *uptime_secs = (double)uptime.tv_sec + ((double)uptime.tv_usec / 1000000);
+    }
+    
+  _proc_stat_free (ps); 
+  return err;
+}
+
 error_t procfs_write_nonpid_stat (struct dir_entry *dir_entry,
                         off_t offset, size_t *len, void *data)
 {
@@ -309,3 +339,23 @@ error_t procfs_write_nonpid_loadavg (struct dir_entry *dir_entry,
   return err;
 }
 
+error_t procfs_write_nonpid_uptime (struct dir_entry *dir_entry,
+                        off_t offset, size_t *len, void *data)
+{  
+  char *uptime_data;
+  error_t err;
+  double uptime_secs;
+  
+  get_uptime (&uptime_secs);
+  
+  if (! err)
+    if (asprintf (&uptime_data, "%.2f %.2f \n", 
+	  uptime_secs, uptime_secs) == -1)
+      return errno;
+
+  memcpy (data, uptime_data, strlen(uptime_data));
+  *len = strlen (data);
+
+  free (uptime_data);
+  return err;
+}

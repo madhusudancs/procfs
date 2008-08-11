@@ -444,7 +444,14 @@ procfs_write_files_contents (struct node *node,
       err = procfs_write_nonpid_loadavg (node->nn->dir_entry,
                                       offset, len, data);
     else 
-      err = ENOENT;                                                                      
+      err = ENOENT;  
+      
+  if (! strcmp (node->nn->dir_entry->name, "uptime"))
+    if (! strcmp (node->nn->dir_entry->dir->fs_path, ""))
+      err = procfs_write_nonpid_uptime (node->nn->dir_entry,
+                                      offset, len, data);
+    else 
+      err = ENOENT;                                                                    
     
   return err;
 }

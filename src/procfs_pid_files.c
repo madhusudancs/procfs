@@ -231,9 +231,9 @@ error_t get_stat_data (pid_t pid,
   err = set_field_value (ps, PSTAT_TASK_BASIC);
   if (! err)
     {
-      new->utime = adjust_jiffy_time (
+      new->cutime = adjust_jiffy_time (
            ps->task_basic_info->user_time);
-      new->stime = adjust_jiffy_time (
+      new->cstime = adjust_jiffy_time (
            ps->task_basic_info->system_time);
 
       new->priority = ps->task_basic_info->base_priority;
@@ -245,8 +245,8 @@ error_t get_stat_data (pid_t pid,
     }   
   else
     {
-      new->utime = 0;
-      new->stime = 0;
+      new->cutime = 0;
+      new->cstime = 0;
       new->priority = 0;
       new->starttime = 0; 
       new->vsize = 0;
@@ -269,8 +269,8 @@ error_t get_stat_data (pid_t pid,
      values are found .*/
   new->cminflt = 0;
   new->cmajflt = 0;
-  new->cutime = 0;
-  new->cstime = 0;       
+  new->utime = 0;
+  new->stime = 0;       
   new->nice = 0;  
   new->rlim = 0;
   new->startcode = 0;

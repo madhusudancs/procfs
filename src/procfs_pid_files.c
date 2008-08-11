@@ -100,6 +100,17 @@ procfs_create_files (struct procfs_dir *dir,
   free (file_name);
   free (file_path);
 
+  if (asprintf (&file_name, "%s", "statm") == -1)
+    return errno;
+  if (asprintf (&file_path, "%s/%s", dir->node->nn->dir_entry->name, "statm") == -1)
+    return errno;
+    
+  dir_entry = update_pid_entries (dir, file_name, timestamp, NULL);
+  err = procfs_create_node (dir_entry, file_path, node);
+
+  free (file_name);
+  free (file_path);
+  
 #if 0
   nodes_list = &node_stat; 
   nodes_list++;
@@ -466,6 +477,39 @@ procfs_write_status_file (struct procfs_dir_entry *dir_entry,
   return err;
 }
 
+/* Writes required process information to statm file
+   within the directory represented by pid. Return
+   the data in DATA and actual length to be written
+   in LEN. */
+error_t
+procfs_write_statm_file (struct procfs_dir_entry *dir_entry, 
+                        off_t offset, size_t *len, void *data)
+{	
+  char *statm_data;
+  error_t err;
+  struct proc_stat *ps;
+  struct procfs_stat *procfs_stat;
+
+  pid_t pid = atoi (dir_entry->dir->node->nn->dir_entry->name);
+  err = _proc_stat_create (pid, ps_context, &ps);
+
+  err = get_stat_data (pid, &procfs_stat);
+
+  if (! err)
+    if (asprintf (&statm_data, "%lu %ld %d %d %d %d %d\n", procfs_stat->vsize, BYTES_TO_PAGES(procfs_stat->rss), 0, 0, 0, 0, 0) == -1)
+      return errno;
+
+  memcpy (data, statm_data, strlen(statm_data));
+  *len = strlen (data);
+
+  _proc_stat_free (ps); 
+
+  free (statm_data);
+  free (procfs_stat);
+
+  return err;
+}
+
 /* Writes required process information to each of files
    within directory represented by pid, for files specified
    by NODE. Return the data in DATA and actual length of 
@@ -492,6 +536,10 @@ procfs_write_files_contents (struct node *node,
       err = procfs_write_status_file (node->nn->dir_entry, 
                                      offset, len, data);
                                      
+  if (! strcmp (node->nn->dir_entry->name, "statm"))
+      err = procfs_write_statm_file (node->nn->dir_entry, 
+                                     offset, len, data);
+                                                                          
   if (! strcmp (node->nn->dir_entry->name, "meminfo"))
     if (! strcmp (node->nn->dir_entry->dir->fs_path, ""))
       err = procfs_write_nonpid_meminfo (node->nn->dir_entry,

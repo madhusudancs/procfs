@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdio.h>
+#include <mach/task_info.h>
 
 #include "procfs.h"
 #include "procfs_pid.h"
@@ -144,6 +145,47 @@ time_t adjust_jiffy_time (time_value_t time_val)
   return jiffy_time;
 }
 
+/* Extract the user and system time for the live threads of 
+   the process. This information is directly retrieved from
+   MACH since neither libps not proc makes this available. */
+error_t get_task_thread_times (task_t task,
+           struct task_thread_times_info *live_threads_times)
+{
+  error_t err;
+  size_t tkcount = TASK_THREAD_TIMES_INFO_COUNT;
+  
+  err = task_info (task, TASK_THREAD_TIMES_INFO,
+                  (task_info_t) live_threads_times, &tkcount);
+  if (err == MACH_SEND_INVALID_DEST)
+    err = ESRCH;
+    
+  return err;
+}
+
+/* Obtains the User Time in UTIME and System Time in STIME from
+   MACH directly since this is neither made available by libps 
+   nor by proc server. */
+error_t get_live_threads_time (struct proc_stat *ps,
+                               time_t *utime, time_t *stime)
+{
+  struct task_thread_times_info live_threads_times;
+  error_t err = set_field_value (ps, PSTAT_TASK);
+  
+  if (! err)
+    {
+      err = get_task_thread_times (ps->task, &live_threads_times);
+      if (! err)
+        {
+          *utime = adjust_jiffy_time (
+               live_threads_times.user_time);
+          *stime = adjust_jiffy_time (
+               live_threads_times.system_time);
+        }   
+    }
+    
+  return err;
+}
+
 /* Get the data for stat file into the structure
    PROCFS_STAT. */
 error_t get_stat_data (pid_t pid, 
@@ -154,6 +196,8 @@ error_t get_stat_data (pid_t pid,
                     malloc (sizeof (struct procfs_stat));
 
   struct proc_stat *ps;
+  time_t utime, stime;
+  
   err = _proc_stat_create (pid, ps_context, &ps);
 
   new->pid = pid;
@@ -228,6 +272,24 @@ error_t get_stat_data (pid_t pid,
       new->majflt = 0;
     }
 
+  /* This seems to be a bit inconsistent with setting of other
+     fields in this code. There are two reasons for this. 
+     1. The actual information required is not made available 
+        by libps which should be directly obtained from MACH.
+     2. The same code which is required to get the information
+        have to be reused in procfs_nonpid_files.c */  
+  err = get_live_threads_time (ps, &utime, &stime);
+  if (! err)
+    {
+      new->utime = utime;
+      new->stime = stime;      
+    }
+  else
+    {
+      new->utime = 0;
+      new->stime = 0;
+    }
+
   err = set_field_value (ps, PSTAT_TASK_BASIC);
   if (! err)
     {
@@ -268,9 +330,7 @@ error_t get_stat_data (pid_t pid,
   /* Temporarily set to 0 until correct 
      values are found .*/
   new->cminflt = 0;
-  new->cmajflt = 0;
-  new->utime = 0;
-  new->stime = 0;       
+  new->cmajflt = 0;     
   new->nice = 0;  
   new->rlim = 0;
   new->startcode = 0;

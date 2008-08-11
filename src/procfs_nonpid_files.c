@@ -196,10 +196,88 @@ error_t get_uptime (double *uptime_secs)
   return err;
 }
 
+error_t get_total_times (double *total_user_time_secs , double *total_system_time_secs )
+{
+  error_t err;
+  pid_t *pids;
+  int pidslen = 0, count;
+  struct proc_stat *ps;
+  struct task_thread_times_info live_threads_times;
+  
+  *total_user_time_secs = 0;
+  *total_system_time_secs = 0;
+  
+  pids = NULL;
+  err = proc_getallpids (getproc (), &pids, &pidslen);
+  
+  if (!err)
+    for (count = 0; count < pidslen; count++)
+      {
+        err = _proc_stat_create (pids[count], ps_context, &ps);
+        if (err)
+          return err;
+          
+        err = proc_stat_set_flags (ps, PSTAT_TASK_BASIC);
+        if (!err && !(ps->flags & PSTAT_TASK_BASIC))
+          err = EGRATUITOUS;
+        
+        if (! err)
+          {           
+            *total_user_time_secs += 
+              ((double) (proc_stat_task_basic_info (ps)->user_time.seconds)) + 
+              (((double) (proc_stat_task_basic_info (ps)->user_time.microseconds)) /
+              (1000 * 1000));
+              
+            *total_system_time_secs += 
+              ((double) (proc_stat_task_basic_info (ps)->system_time.seconds)) + 
+                  (((double) (proc_stat_task_basic_info (ps)->system_time.microseconds)) / (1000 * 1000));
+                            
+            error_t err = set_field_value (ps, PSTAT_TASK); 
+            if (! err)
+              {
+                err = get_task_thread_times (ps->task, &live_threads_times);
+                if (! err)
+                  {
+                    *total_user_time_secs += ((double) (live_threads_times.user_time.seconds)) + 
+                            (((double) (live_threads_times.user_time.microseconds)) / (1000 * 1000));
+                    *total_system_time_secs += ((double) (live_threads_times.system_time.seconds)) + 
+                            (((double) (live_threads_times.system_time.microseconds)) / (1000 * 1000));
+                            
+                  }          
+              }
+          }
+        _proc_stat_free (ps); 
+      }   
+    
+  return err;
+}
+
 error_t procfs_write_nonpid_stat (struct dir_entry *dir_entry,
                         off_t offset, size_t *len, void *data)
-{
-  return 0;
+{  
+  char *stat_data;
+  error_t err;
+  double uptime_secs, total_user_time_secs, total_system_time_secs;
+
+  err = get_uptime (&uptime_secs);
+  if (! err)
+    {
+      err = get_total_times (&total_user_time_secs, &total_system_time_secs); 
+      if (! err)
+        /* If the values are multiplied by 100, it iss done so to adjust
+           values in seconds to jiffies. */
+        if (asprintf (&stat_data, "cpu %ld %ld %ld %ld %ld %ld %d %d %d\n",
+                      (long)(total_user_time_secs * 100), 0,
+                      (long)(total_system_time_secs * 100), 
+                      0, 0, 0, 0, 0, 0) == -1)
+          return errno;
+    }      
+
+  memcpy (data, stat_data, strlen(stat_data));
+  *len = strlen (data);
+
+  free (stat_data);
+  return err;
 }
 
 /* Makes sure the default pager port and associated 

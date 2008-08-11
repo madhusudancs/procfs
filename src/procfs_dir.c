@@ -559,6 +559,12 @@ procfs_fill_root_dir(struct procfs_dir *dir, time_t timestamp)
   if ((err = procfs_create_version (dir, &node, timestamp)) != 0)
     return err;
 
+  if ((err = procfs_create_meminfo (dir, &node, timestamp)) != 0)
+    return err;
+
+  if ((err = procfs_create_loadavg (dir, &node, timestamp)) != 0)
+    return err;
+
   return 0;
 }
 

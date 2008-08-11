@@ -101,6 +101,50 @@ error_t procfs_create_stat (struct procfs_dir *dir,
   return err;
 }
 
+error_t procfs_create_meminfo (struct procfs_dir *dir, 
+                           struct node **node,
+                           time_t timestamp)
+{
+  int err;
+  char *file_name, *file_path;
+  struct procfs_dir_entry *dir_entry;
+ 
+  if (asprintf (&file_name, "%s", "meminfo") == -1)
+    return errno;
+  if (asprintf (&file_path, "%s", "meminfo") == -1)
+    return errno;
+    
+  dir_entry = update_pid_entries (dir, file_name, timestamp, NULL);
+  err = procfs_create_node (dir_entry, file_path, node);
+
+  free (file_name);
+  free (file_path);
+
+  return err;
+}
+
+error_t procfs_create_loadavg (struct procfs_dir *dir, 
+                           struct node **node,
+                           time_t timestamp)
+{
+  int err;
+  char *file_name, *file_path;
+  struct procfs_dir_entry *dir_entry;
+ 
+  if (asprintf (&file_name, "%s", "loadavg") == -1)
+    return errno;
+  if (asprintf (&file_path, "%s", "loadavg") == -1)
+    return errno;
+    
+  dir_entry = update_pid_entries (dir, file_name, timestamp, NULL);
+  err = procfs_create_node (dir_entry, file_path, node);
+
+  free (file_name);
+  free (file_path);
+
+  return err;
+}
+
 error_t procfs_write_nonpid_stat (struct dir_entry *dir_entry,
                         off_t offset, size_t *len, void *data)
 {

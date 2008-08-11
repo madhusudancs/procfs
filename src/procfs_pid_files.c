@@ -313,8 +313,8 @@ error_t get_stat_data (pid_t pid,
       new->starttime = adjust_jiffy_time ( 
           ps->task_basic_info->creation_time);
               
-      new->vsize = PAGES_TO_BYTES (ps->task_basic_info->virtual_size);
-      new->rss = PAGES_TO_BYTES (ps->task_basic_info->resident_size);
+      new->vsize = ps->task_basic_info->virtual_size;
+      new->rss = ps->task_basic_info->resident_size;
     }   
   else
     {
@@ -393,7 +393,7 @@ procfs_write_stat_file (struct procfs_dir_entry *dir_entry,
            procfs_stat->cstime, procfs_stat->priority, 
            procfs_stat->nice, procfs_stat->num_threads, 
            procfs_stat->itrealvalue, procfs_stat->starttime, 
-           procfs_stat->vsize, procfs_stat->rss, 
+           procfs_stat->vsize, BYTES_TO_PAGES(procfs_stat->rss), 
            procfs_stat->rlim, procfs_stat->startcode,
            procfs_stat->endcode, procfs_stat->startstack, 
            procfs_stat->kstkesp, procfs_stat->kstkeip, 

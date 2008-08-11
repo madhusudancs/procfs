@@ -44,6 +44,7 @@
 #define NUMBER_OF_FILES_PER_PID 1
 #define JIFFY_ADJUST 100
 #define PAGES_TO_BYTES(pages) ((pages) * sysconf(_SC_PAGESIZE))
+#define BYTES_TO_PAGES(bytes) ((bytes) / sysconf(_SC_PAGESIZE))
 
 #include <stdlib.h>
 #include <unistd.h>

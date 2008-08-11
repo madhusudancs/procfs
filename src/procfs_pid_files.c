@@ -435,7 +435,9 @@ procfs_write_files_contents (struct node *node,
   if (! strcmp (node->nn->dir_entry->name, "meminfo"))
     if (! strcmp (node->nn->dir_entry->dir->fs_path, ""))
       err = procfs_write_nonpid_meminfo (node->nn->dir_entry,
-                                      offset, len, data);                                   
+                                      offset, len, data); 
+    else
+      err = ENOENT;                                                                      
     
   return err;
 }

@@ -280,3 +280,32 @@ error_t procfs_write_nonpid_meminfo (struct dir_entry *dir_entry,
   free (meminfo_data);
   return err;
 }
+
+error_t procfs_write_nonpid_loadavg (struct dir_entry *dir_entry,
+                        off_t offset, size_t *len, void *data)
+{  
+  char *loadavg_data;
+  error_t err;
+  processor_set_info_t	info;
+  natural_t *count;
+  struct host_load_info *load;
+  mach_port_t host;
+
+  err = ps_host_load_info (&load);
+  if (err)
+    error (0, err, "ps_host_load_info");
+    
+  if (! err)
+    if (asprintf (&loadavg_data, "%.2f %.2f %.2f \n", 
+          (double)load->avenrun[0] / (double)LOAD_SCALE,
+	  (double)load->avenrun[1] / (double)LOAD_SCALE,
+	  (double)load->avenrun[2] / (double)LOAD_SCALE) == -1)
+      return errno;
+
+  memcpy (data, loadavg_data, strlen(loadavg_data));
+  *len = strlen (data);
+
+  free (loadavg_data);
+  return err;
+}
+

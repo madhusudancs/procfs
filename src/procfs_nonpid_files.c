@@ -23,17 +23,38 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA. 
    
-   A portion of the code in this file is based on ftpfs code
+   A portion of the code in this file is based on vmstat.c code
    present in the hurd repositories copyrighted to FSF. The
    Copyright notice from that file is given below.
+   
+   Copyright (C) 1997,98,2002 Free Software Foundation, Inc.
+   Written by Miles Bader <miles@gnu.org>
+   This file is part of the GNU Hurd.
 */
 
 #include <stdio.h>
 #include <unistd.h>
 #include <hurd/netfs.h>
 #include <hurd/ihash.h>
+#include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/sysinfo.h>
+#include <mach/vm_statistics.h>
+#include <mach/default_pager.h>
+#include <hurd.h>
+#include <hurd/paths.h>
+#include <mach.h>
+#include <ps.h>
+#include <time.h>
+
 #include "procfs.h"
+
+typedef long long val_t;
+#define BADVAL ((val_t) - 1LL)
+
+/* default pager port (must be privileged to fetch this).  */
+mach_port_t def_pager;
+struct default_pager_info def_pager_info;
 
 error_t procfs_create_uptime (struct procfs_dir *dir, 
                            struct node **node,
@@ -149,4 +170,113 @@ error_t procfs_write_nonpid_stat (struct dir_entry *dir_entry,
                         off_t offset, size_t *len, void *data)
 {
   return 0;
+}
+
+/* Makes sure the default pager port and associated 
+   info exists, and returns 0 if not (after printing
+   an error).  */
+static int
+ensure_def_pager_info ()
+{
+  error_t err;
+
+  if (def_pager == MACH_PORT_NULL)
+    {
+      mach_port_t host;
+
+      err = get_privileged_ports (&host, 0);
+      if (err == EPERM)
+	{
+	  /* We are not root, so try opening the /servers file.  */
+	  def_pager = file_name_lookup (_SERVERS_DEFPAGER, O_READ, 0);
+	  if (def_pager == MACH_PORT_NULL)
+	    {
+	      error (0, errno, _SERVERS_DEFPAGER);
+	      return 0;
+	    }
+	}
+      if (def_pager == MACH_PORT_NULL)
+	{
+	  if (err)
+	    {
+	      error (0, err, "get_privileged_ports");
+	      return 0;
+	    }
+
+	  err = vm_set_default_memory_manager (host, &def_pager);
+	  mach_port_deallocate (mach_task_self (), host);
+
+	  if (err)
+	    {
+	      error (0, err, "vm_set_default_memory_manager");
+	      return 0;
+	    }
+	}
+    }
+
+  if (!MACH_PORT_VALID (def_pager))
+    {
+      if (def_pager == MACH_PORT_NULL)
+	{
+	  error (0, 0,
+		 "No default pager running, so no swap information available");
+	  def_pager = MACH_PORT_DEAD; /* so we don't try again */
+	}
+      return 0;
+    }
+
+  err = default_pager_info (def_pager, &def_pager_info);
+  if (err)
+    error (0, err, "default_pager_info");
+  return (err == 0);
+}
+
+#define SWAP_FIELD(getter, expr) \
+  static val_t getter () \
+  { return ensure_def_pager_info () ? (val_t) (expr) : BADVAL; }
+
+SWAP_FIELD (get_swap_size, def_pager_info.dpi_total_space)
+SWAP_FIELD (get_swap_free, def_pager_info.dpi_free_space)
+SWAP_FIELD (get_swap_page_size, def_pager_info.dpi_page_size)
+SWAP_FIELD (get_swap_active, (def_pager_info.dpi_total_space
+			      - def_pager_info.dpi_free_space))
+
+error_t procfs_write_nonpid_meminfo (struct dir_entry *dir_entry,
+                        off_t offset, size_t *len, void *data)
+{  
+  char *meminfo_data;
+  error_t err;
+  struct vm_statistics vmstats;
+
+  err = vm_statistics (mach_task_self (), &vmstats);
+  
+  unsigned long mem_size = ((vmstats.free_count + 
+    vmstats.active_count + vmstats.inactive_count +
+    vmstats.wire_count) * vmstats.pagesize) / 1024;
+
+  if (! err)
+    if (asprintf (&meminfo_data, "MemTotal:\t%lu kB\n"
+        "MemFree:\t%lu kB\n"
+        "Buffers:\t%ld kB\n"
+        "Cached:\t\t%ld kB\n"
+        "SwapCached:\t%ld kB\n"
+        "Active:\t\t%lu kB\n"
+        "Inactive:\t%lu kB\n"
+        "HighTotal:\t%lu kB\n"
+        "HighFree:\t%lu kB\n" 
+        "LowTotal:\t%lu kB\n" 
+        "LowFree:\t%lu kB\n" 
+        "SwapTotal:\t%lu kB\n"
+        "SwapFree:\t%lu kB\n", 
+         mem_size, (PAGES_TO_BYTES(vmstats.free_count)) / 1024 , 0, 0, 0, 
+         (PAGES_TO_BYTES(vmstats.active_count)) / 1024, 
+         (PAGES_TO_BYTES(vmstats.inactive_count)) / 1024, 0, 0, 0, 0, 
+         get_swap_size (), get_swap_free ()) == -1)
+      return errno;
+
+  memcpy (data, meminfo_data, strlen(meminfo_data));
+  *len = strlen (data);
+
+  free (meminfo_data);
+  return err;
 }

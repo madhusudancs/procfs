@@ -496,7 +496,10 @@ procfs_write_statm_file (struct procfs_dir_entry *dir_entry,
   err = get_stat_data (pid, &procfs_stat);
 
   if (! err)
-    if (asprintf (&statm_data, "%lu %ld %d %d %d %d %d\n", procfs_stat->vsize, BYTES_TO_PAGES(procfs_stat->rss), 0, 0, 0, 0, 0) == -1)
+    if (asprintf (&statm_data, "%lu %ld %d %d %d %d %d\n", 
+       BYTES_TO_PAGES(procfs_stat->vsize), 
+       BYTES_TO_PAGES(procfs_stat->rss),
+       0, 0, 0, 0, 0) == -1)
       return errno;
 
   memcpy (data, statm_data, strlen(statm_data));

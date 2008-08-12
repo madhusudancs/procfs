@@ -422,14 +422,25 @@ error_t procfs_write_nonpid_uptime (struct dir_entry *dir_entry,
 {  
   char *uptime_data;
   error_t err;
-  double uptime_secs;
+  double uptime_secs, total_user_time_secs;
+  double total_system_time_secs, idle_time_secs;
   
   err = get_uptime (&uptime_secs);
-  
   if (! err)
-    if (asprintf (&uptime_data, "%.2f %.2f \n", 
-	  uptime_secs, uptime_secs) == -1)
-      return errno;
+    {
+      err = get_total_times (&total_user_time_secs,
+                           &total_system_time_secs);
+      if (! err)
+        {
+          idle_time_secs = uptime_secs - 
+                           total_system_time_secs;
+                           
+          if (asprintf (&uptime_data, "%.2f %.2f \n", 
+	          uptime_secs, idle_time_secs) == -1)
+            return errno;
+        }                         
+    }                       
+
 
   memcpy (data, uptime_data, strlen(uptime_data));
   *len = strlen (data);

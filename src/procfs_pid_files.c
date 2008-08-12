@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <mach/task_info.h>
+#include <sys/resource.h>
 
 #include "procfs.h"
 #include "procfs_pid.h"
@@ -326,6 +327,8 @@ error_t get_stat_data (pid_t pid,
       new->rss = 0;
     }
 
+  new->nice = getpriority (0, pid);
+  
   err = set_field_value (ps, PSTAT_NUM_THREADS);
   if (! err)
     new->num_threads = ps->num_threads;
@@ -342,7 +345,6 @@ error_t get_stat_data (pid_t pid,
      values are found .*/
   new->cminflt = 0;
   new->cmajflt = 0;     
-  new->nice = 0;  
   new->rlim = 0;
   new->startcode = 0;
   new->endcode = 0;

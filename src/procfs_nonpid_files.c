@@ -257,20 +257,32 @@ error_t procfs_write_nonpid_stat (struct dir_entry *dir_entry,
 {  
   char *stat_data;
   error_t err;
-  double uptime_secs, total_user_time_secs, total_system_time_secs;
+  double uptime_secs, total_user_time_secs;
+  double total_system_time_secs, idle_time_secs;
 
   err = get_uptime (&uptime_secs);
   if (! err)
     {
       err = get_total_times (&total_user_time_secs, &total_system_time_secs); 
       if (! err)
-        /* If the values are multiplied by 100, it iss done so to adjust
-           values in seconds to jiffies. */
-        if (asprintf (&stat_data, "cpu %ld %ld %ld %ld %ld %ld %d %d %d\n",
-                      (long)(total_user_time_secs * 100), 0,
-                      (long)(total_system_time_secs * 100), 
-                      0, 0, 0, 0, 0, 0) == -1)
-          return errno;
+        {
+          idle_time_secs = uptime_secs - 
+                           total_system_time_secs;
+
+          /* If the values are multiplied by 100, it iss done so to adjust
+             values in seconds to jiffies. */
+          if (asprintf (&stat_data, "cpu  %ld %ld %ld %ld %ld %ld %d %d %d\n"
+                   "cpu0 %ld %ld %ld %ld %ld %ld %d %d %d\n"
+                   "intr %ld %ld %ld %ld %ld %ld %d %d %d\n",
+                        (long)(total_user_time_secs * 100), 0,
+                        (long)(total_system_time_secs * 100), 
+                        (long) (idle_time_secs * 100), 0, 0, 0, 0,
+                        0, (long)(total_user_time_secs * 100), 0,
+                        (long)(total_system_time_secs * 100), 
+                        (long)(idle_time_secs * 100), 0, 0, 0, 
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) == -1)
+            return errno;
+        }    
     }      
 
   memcpy (data, stat_data, strlen(stat_data));

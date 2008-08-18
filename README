@@ -1,0 +1,48 @@
+~~~~~~~~~~~~~~~
+1. Introduction
+~~~~~~~~~~~~~~~
+
+  This program is called procfs, the /proc translator. This 
+program provides a GNU/Linux compatible /proc pseudo file-
+system on GNU Hurd. This is called a translator since it
+translates the process related information stored in the 
+MACH Microkernel which is made available through the proc
+server and the libps library into a virtual filesystem.
+
+~~~~~~~
+2. Goal
+~~~~~~~
+
+  The major goal of writing this translator was to make the
+process related tools like pgrep, pkill, kill which are 
+packaged in procps, killall, pstree which are packaged in
+psmisc and various other process related tools that rely
+on GNU/Linux's /proc filesystem to run out of the box on
+Hurd.
+
+~~~~~~~~~~
+3. Install
+~~~~~~~~~~
+
+  To install this translator you can simply do the following.
+Just cd to the directory named src in the root of the tree of 
+the translator source code. Just type
+
+$ make
+
+This builds the translator. After building the translator, you
+get a binary named procfs. You need to set it as a translator.
+To do so you can type the following command from the src dir-
+ectory where you buit the translator
+
+$ settrans -fgap /proc procfs
+
+Viola! You are done setting up the translator. Now in case you
+want to use the debian hurd binaries to work with tools like
+pgrep, pkill, kill, htop etc, you can just download the binaries
+which I have uploaded here:
+
+http://madhusudancs.info/procfs-testing-how-to-mini
+
+The patches to the source packages will be made available soon.
+

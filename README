@@ -33,7 +33,7 @@ $ make
 This builds the translator. After building the translator, you
 get a binary named procfs. You need to set it as a translator.
 To do so you can type the following command from the src dir-
-ectory where you buit the translator
+ectory where you built the translator
 
 $ settrans -fgap /proc procfs
 

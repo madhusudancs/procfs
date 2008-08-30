@@ -586,14 +586,18 @@ procfs_fill_root_dir(struct procfs_dir *dir, time_t timestamp)
   char *data;
   pid_t *pids;
   int pidslen;
-  struct stat *stat = (struct stat *) malloc (sizeof (struct stat));
-  stat->st_mode = S_IFDIR;
+  struct stat stat;
+  stat.st_mode = S_IFDIR | S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | 
+                  S_IROTH | S_IXOTH;
+  stat.st_nlink = 1;
+  stat.st_size = 0;
 
   int count;
   char *dir_name_pid;
   struct node *node;
   struct procfs_dir *new_dir;
   struct procfs_dir_entry *dir_entry;
+  struct proc_stat *ps;
     
   pids = NULL;
   pidslen = 0;
@@ -613,13 +617,25 @@ procfs_fill_root_dir(struct procfs_dir *dir, time_t timestamp)
           if (! node || ! new_dir )
            return ENOMEM;
 #endif
-          dir_entry = update_entries_list (dir, dir_name_pid,
-                                 stat, timestamp, NULL);
-          err = procfs_create_node (dir_entry, dir_name_pid, &node);
+          err = _proc_stat_create (pids[count], ps_context, &ps);
+          if (! err)
+            {
+              err = set_field_value (ps, PSTAT_PROC_INFO);
+              if (! err)
+                {
+                  stat.st_uid = proc_stat_proc_info (ps)->owner;
+                  stat.st_gid = proc_stat_proc_info (ps)->pgrp;
 
-          procfs_dir_create (dir->fs, node, 
-                                 dir_name_pid, &new_dir);
-          free(dir_name_pid);
+                  dir_entry = update_entries_list (dir, dir_name_pid,
+                                 &stat, timestamp, NULL);
+                  err = procfs_create_node (dir_entry, dir_name_pid, &node);
+
+                  procfs_dir_create (dir->fs, node, 
+                                      dir_name_pid, &new_dir);
+                  free(dir_name_pid);
+                  _proc_stat_free (ps);
+                }
+            }
 	}
     }
 
